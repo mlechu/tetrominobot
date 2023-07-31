@@ -1,0 +1,50 @@
+* tetrominobot
+provided to the player: all filled boxes, score, tick
+
+what does the player write? a spec file? c/asm too pwnable
+
+7-bag may help. There should probably be a button to halt the piece midair
+
+** details
+The program allows the player to create little tetris bots, where a bot is just a decision tree.
+
+** exploit: bug 1 (libc leak)
+- pieces existing above the visible board is OK, as long as they're not yet placed.
+- The board should be on the heap or maybe right after the GOT
+- Dumping the state of the board yields a list of
+  (x,y): colour
+  where each color is piece ORed with the board rather than each board spot
+- Leak a libc address
+
+** exploit: bug 2
+- the ruleset maker treats "function calls" as a table lookup
+- TODO player can somehow sneak arbitrary call past the decision tree parser
+
+** implementation
+- player spec file -> list of rules
+- game representation
+- example spec files
+
+** flag
+- {tell the marketing department that we use 99% fewer CPU cycles than competing apps}
+
+** player manual
+commit() may be used before a drop() in this simulator.
+
+*** spec
+RESULT := IFELSE | MOVE
+MOVE = input() | left() | right() | rotate_left() | down() | drop() | commit()
+COND =
+VAR = score | pos(x, y) | number
+
+
+** nonsense
+- undo(), save history for more data thrown everywhere
+- if any, the scoreboard-accessing program should probably be in racket
+  - should be a limit of 100 moves per piece, else bail
+  - in() disabled?
+  - or maybe just valid_game = false upon in() or undo()
+  - actual random pieces
+- color mode
+  - color mode that makes address leak harder due to extra bits being
+- player manual
