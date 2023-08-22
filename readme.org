@@ -8,7 +8,11 @@ what does the player write? a spec file? c/asm too pwnable
 ** details
 The program allows the player to create little tetris bots, where a bot is just a decision tree.
 
-** exploit: bug 1 (libc leak)
+** exploit
+
+leak is probably more fun than the call
+
+*** bug 1 (libc leak)
 - pieces existing above the visible board is OK, as long as they're not yet placed.
 - The board should be on the heap or maybe right after the GOT
 - Dumping the state of the board yields a list of
@@ -16,14 +20,24 @@ The program allows the player to create little tetris bots, where a bot is just 
   where each color is piece ORed with the board rather than each board spot
 - Leak a libc address
 
-** exploit: bug 2
+*** bug 2: arbitrary call
 - the ruleset maker treats "function calls" as a table lookup
 - TODO player can somehow sneak arbitrary call past the decision tree parser
+
+*** optional bug: srand control
+- hash of the program won't work; i want random pieces for any given bot(???)
+- Maybe just a small buffer overflow
 
 ** implementation
 - player spec file -> list of rules
 - game representation
 - example spec files
+
+*** game state
+- list of pieces where at least one cell is present on the board
+- score
+- current movable piece
+- piece timeout value
 
 ** flag
 - {tell the marketing department that we use 99% fewer CPU cycles than competing apps}
