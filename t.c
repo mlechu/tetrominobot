@@ -10,7 +10,7 @@
 #define ALT_DIS CSI "?1049l"
 
 #define BOARD_W 10
-#define BOARD_H 20
+#define BOARD_H 21
 
 #define PROG_SIZE 0x1000
 
@@ -42,23 +42,57 @@ typedef struct {
     int y;
 } pos_t;
 
-pos_t SHAPES[8][4] = {{0},
-                      {{0, 1}, {1, 1}, {2, 1}, {3, 1}},  /* I */
-                      {{0, 0}, {0, 1}, {1, 0}, {1, 1}},  /* O */
-                      {{0, 1}, {1, 0}, {1, 1}, {2, 1}},  /* T */
-                      {{0, 0}, {0, 1}, {1, 1}, {2, 1}},  /* J */
-                      {{0, 1}, {1, 1}, {2, 1}, {2, 0}},  /* L */
-                      {{0, 1}, {1, 1}, {1, 0}, {2, 0}},  /* S */
-                      {{0, 0}, {1, 0}, {1, 1}, {2, 1}}}; /* Z */
+/*
+      x  0  1  2  3
+    y
 
-/* int SHAPES[8][4][2] = {{0}, */
-/*                        {{0, 1}, {1, 1}, {2, 1}, {3, 1}},  /\* I *\/ */
-/*                        {{0, 0}, {0, 1}, {1, 0}, {1, 1}},  /\* O *\/ */
-/*                        {{0, 1}, {1, 0}, {1, 1}, {2, 1}},  /\* T *\/ */
-/*                        {{0, 0}, {0, 1}, {1, 1}, {2, 1}},  /\* J *\/ */
-/*                        {{0, 1}, {1, 1}, {2, 1}, {2, 0}},  /\* L *\/ */
-/*                        {{0, 1}, {1, 1}, {1, 0}, {2, 0}},  /\* S *\/ */
-/*                        {{0, 0}, {1, 0}, {1, 1}, {2, 1}}}; /\* Z *\/ */
+    0    X
+
+    1
+
+    2
+
+    3
+ */
+
+/* [angle][shape][cell] */
+pos_t SHAPES[4][8][4] = {
+    {{0},
+     {{0, 1}, {1, 1}, {2, 1}, {3, 1}},  /* I */
+     {{1, 1}, {1, 2}, {2, 1}, {2, 2}},  /* O */
+     {{1, 1}, {0, 1}, {1, 0}, {2, 1}},  /* T */
+     {{0, 0}, {0, 1}, {1, 1}, {2, 1}},  /* J */
+     {{0, 1}, {1, 1}, {2, 1}, {2, 0}},  /* L */
+     {{0, 1}, {1, 1}, {1, 0}, {2, 0}},  /* S */
+     {{0, 0}, {1, 0}, {1, 1}, {2, 1}}}, /* Z */
+
+    {{0},
+     {{2, 0}, {2, 1}, {2, 2}, {2, 3}},  /* I */
+     {{1, 1}, {1, 2}, {2, 1}, {2, 2}},  /* O */
+     {{1, 1}, {1, 0}, {2, 1}, {1, 2}},  /* T */
+     {{1, 0}, {2, 0}, {1, 1}, {1, 2}},  /* J */
+     {{1, 0}, {2, 2}, {1, 1}, {1, 2}},  /* L */
+     {{1, 0}, {1, 1}, {2, 1}, {2, 2}},  /* S */
+     {{2, 0}, {1, 1}, {2, 1}, {1, 2}}}, /* Z */
+
+    {{0},
+     {{0, 2}, {1, 2}, {2, 2}, {3, 2}},  /* I */
+     {{1, 1}, {1, 2}, {2, 1}, {2, 2}},  /* O */
+     {{1, 1}, {2, 1}, {1, 2}, {0, 1}},  /* T */
+     {{0, 1}, {1, 1}, {2, 1}, {2, 2}},  /* J */
+     {{0, 1}, {1, 1}, {2, 1}, {0, 2}},  /* L */
+     {{0, 2}, {1, 2}, {1, 1}, {2, 1}},  /* S */
+     {{0, 1}, {1, 1}, {1, 2}, {2, 2}}}, /* Z */
+
+    {{0},
+     {{1, 0}, {1, 1}, {1, 2}, {1, 3}}, /* I */
+     {{1, 1}, {1, 2}, {2, 1}, {2, 2}}, /* O */
+     {{1, 1}, {1, 2}, {0, 1}, {1, 0}}, /* T */
+     {{1, 0}, {1, 1}, {0, 2}, {1, 2}}, /* J */
+     {{1, 0}, {1, 1}, {0, 0}, {1, 2}}, /* L */
+     {{0, 0}, {0, 1}, {1, 1}, {1, 2}}, /* S */
+     {{1, 0}, {0, 1}, {1, 1}, {0, 2}}} /* Z */
+};
 
 int max2(int a, int b) { return a >= b ? a : b; }
 int max4(int a, int b, int c, int d) { return max2(max2(a, b), max2(c, d)); }
@@ -78,23 +112,25 @@ typedef struct {
     shape_t s;
     int colour;
     int gcolour;
+    uint8_t angle;
 } piece_t;
 
 void get_cells(piece_t p, pos_t out[4]) {
     for (int i = 0; i < 4; i++) {
-        pos_t cell = SHAPES[p.s][i];
+        pos_t cell = SHAPES[p.angle % 4][p.s][i];
         out[i].x = p.pos.x + cell.x;
         out[i].y = p.pos.y + cell.y;
     }
 }
 
-piece_t new_piece() {
+piece_t new_piece(int s) {
     piece_t p;
-    p.s = rand_shape();
+    p.s = s != 0 ? s : rand_shape();
     p.colour = PIECE_COLOURS[p.s];
     p.gcolour = GHOST_COLOURS[p.s];
     p.pos.x = 3;
     p.pos.y = 0;
+    p.angle = 0;
     return p;
 }
 
@@ -104,16 +140,17 @@ typedef int board_t[BOARD_H][BOARD_W];
 typedef struct {
     board_t board;
     uint64_t score;
-    piece_t p_curr;
+    piece_t p;
+    /* since no gravity, no point in limiting # of holds per piece */
     shape_t held;
-    shape_t p_preview[PIECE_PREVIEWS];
+    shape_t preview[PIECE_PREVIEWS];
 } game_t;
 
 game_t *new_game() {
     game_t *g = calloc(sizeof(game_t), 1);
-    g->p_curr = new_piece();
+    g->p = new_piece(0);
     for (int i = 0; i < PIECE_PREVIEWS; i++) {
-        g->p_preview[i] = rand_shape();
+        g->preview[i] = rand_shape();
     }
     return g;
 }
@@ -134,35 +171,116 @@ typedef struct {
     int (*call)();
 } rule_t;
 
+/* Return 1 if p overlaps with any placed piece in g */
+int check_dead(game_t *g, piece_t *p) {
+    pos_t cells[4];
+    get_cells(*p, cells);
+    for (int i = 0; i < 4; i++) {
+        if (g->board[cells[i].y][cells[i].x] != P_NONE) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void print_game(game_t *g) {
-    board_t rboard = {0};
+    board_t outb = {PIECE_COLOURS[P_NONE]};
     /* board pieces and voids */
     for (int y = 0; y < BOARD_H; y++) {
         for (int x = 0; x < BOARD_W; x++) {
-            rboard[y][x] = PIECE_COLOURS[g->board[y][x]];
+            outb[y][x] = PIECE_COLOURS[g->board[y][x]];
         }
+    }
+
+    /* ghost piece */
+    piece_t ghost = g->p;
+    piece_t new_ghost = ghost;
+    new_ghost.pos.y++;
+    while (1) {
+        pos_t cells[4];
+        get_cells(new_ghost, cells);
+        int max_y = max4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
+        if (max_y >= BOARD_H) {
+            break;
+        }
+        if (check_dead(g, &new_ghost)) {
+            break;
+        }
+        ghost.pos.y++;
+        new_ghost.pos.y++;
+    }
+    pos_t ghost_cells[4];
+    get_cells(ghost, ghost_cells);
+    for (int i = 0; i < 4; i++) {
+        outb[ghost_cells[i].y][ghost_cells[i].x] = g->p.gcolour;
     }
 
     /* curr piece */
     pos_t cells[4];
-    get_cells(g->p_curr, cells);
+    get_cells(g->p, cells);
     for (int i = 0; i < 4; i++) {
-        rboard[cells[i].y][cells[i].x] = g->p_curr.colour;
+        outb[cells[i].y][cells[i].x] = g->p.colour;
     }
 
-    /* todo colour ghost */
+    int lpanel[BOARD_H][6];
+    int rpanel[BOARD_H][6];
+    for (int y = 0; y < BOARD_H; y++) {
+        for (int x = 0; x < BOARD_W; x++) {
+            lpanel[y][x] = PIECE_COLOURS[P_NONE];
+            rpanel[y][x] = PIECE_COLOURS[P_NONE];
+        }
+    }
+
+    /* lpanel: hold piece */
+    if (g->held != P_NONE) {
+        piece_t held = new_piece(g->held);
+        held.pos.x = 1;
+        held.pos.y = 1;
+        pos_t lcells[4];
+        get_cells(held, lcells);
+        for (int i = 0; i < 4; i++) {
+            lpanel[lcells[i].y][lcells[i].x] = PIECE_COLOURS[held.s];
+        }
+    }
+
+    /* rpanel: next */
+    for (int i = 0; i < PIECE_PREVIEWS; i++) {
+        piece_t prv = new_piece(g->preview[i]);
+        prv.pos.x = 1;
+        prv.pos.y = i * 4 + 1;
+        pos_t rcells[4];
+        get_cells(prv, cells);
+        for (int i = 0; i < 4; i++) {
+            rpanel[cells[i].y][cells[i].x] = PIECE_COLOURS[prv.s];
+        }
+    }
 
     /* print */
     printf("\n");
+    printf("+------------+--------------------+------------+\n");
+    printf("| Hold:      |  *Practice mode*   | Next:      |\n");
+    printf("+------------+--------------------+------------+\n");
     for (int y = 0; y < BOARD_H; y++) {
         printf("|");
+        for (int x = 0; x < 6; x++) {
+            printf("\e[48;5;%dm  ", lpanel[y][x]);
+        }
+        printf(TERM_ENDCOLOUR);
+        printf("|");
         for (int x = 0; x < BOARD_W; x++) {
-            printf("\e[48;5;%dm  ", rboard[y][x]);
+            printf("\e[48;5;%dm  ", outb[y][x]);
+        }
+        printf(TERM_ENDCOLOUR);
+        printf("|");
+        for (int x = 0; x < 6; x++) {
+            printf("\e[48;5;%dm  ", rpanel[y][x]);
         }
         printf(TERM_ENDCOLOUR);
         printf("|\n");
     }
-    printf("------------");
+    printf("+------------+--------------------+------------+\n");
+    printf("|            | wasd  SPC   . - =  |            |\n");
+    printf("+------------+--------------------+------------+\n");
 }
 
 // rule compiler
@@ -180,18 +298,6 @@ int exec_rule(char *rname, rule_t *rules, int r_count) {
     return 1; // should not happen with die ruel
 }
 
-/* Return 1 if p overlaps with any placed piece in g */
-int check_dead(game_t *g, piece_t *p) {
-    pos_t cells[4];
-    get_cells(*p, cells);
-    for (int i = 0; i < 4; i++) {
-        if (g->board[cells[i].y][cells[i].x] != P_NONE) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 // return 1 when done
 int add_piece(game_t *g, rule_t *rules, int r_count) {
     puts("play() called");
@@ -206,7 +312,7 @@ int add_piece(game_t *g, rule_t *rules, int r_count) {
             print_game(g);
         }
 
-        if (check_dead(g, &g->p_curr)) {
+        if (check_dead(g, &g->p)) {
             return 1;
         }
     }
@@ -225,8 +331,8 @@ int clear_lines(game_t *g) {
     int score[] = {0, 100, 300, 500, 800};
     int score_i = 0;
 
-    for (int dst_y = BOARD_H - 1, src_y = BOARD_H - 1; dst_y >= 0; dst_y--, src_y--) {
-        printf("%d\n", rowcnt[dst_y]);
+    for (int dst_y = BOARD_H - 1, src_y = BOARD_H - 1; dst_y >= 0;
+         dst_y--, src_y--) {
         while (rowcnt[src_y] == BOARD_W) { /* clear */
             src_y--;
             score_i++;
@@ -239,6 +345,16 @@ int clear_lines(game_t *g) {
     return score[score_i];
 }
 
+/* Shift the queue forward, filling in the new spot, and throwing away curr.
+ * Assumes curr piece has already been written to the board if necessary. */
+int advance_shape(game_t *g) {
+    g->p = new_piece(g->preview[0]);
+    for (int i = 0; i < PIECE_PREVIEWS - 1; i++) {
+        g->preview[i] = g->preview[i + 1];
+    }
+    g->preview[PIECE_PREVIEWS - 1] = rand_shape();
+}
+
 ///////// checkable functions
 int check_round() {}
 
@@ -249,8 +365,8 @@ int check_round() {}
 int check_shape() {}
 
 int _move_lr(game_t *g, int m) {
-    int old_x = g->p_curr.pos.x;
-    piece_t new_p = g->p_curr;
+    int old_x = g->p.pos.x;
+    piece_t new_p = g->p;
     new_p.pos.x = old_x + m;
 
     /* check board excursion */
@@ -267,7 +383,7 @@ int _move_lr(game_t *g, int m) {
         return 1;
     }
 
-    g->p_curr = new_p;
+    g->p = new_p;
     return 0;
 }
 
@@ -275,15 +391,14 @@ int _move_lr(game_t *g, int m) {
 int move_left(game_t *g) { return _move_lr(g, -1); }
 int move_right(game_t *g) { return _move_lr(g, 1); }
 int move_down(game_t *g) {
-    int old_y = g->p_curr.pos.y;
-    piece_t new_p = g->p_curr;
+    int old_y = g->p.pos.y;
+    piece_t new_p = g->p;
     new_p.pos.y = old_y + 1;
 
     pos_t cells[4];
     get_cells(new_p, cells);
-    int min_y = min4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
     int max_y = max4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
-    if (min_y < 0 || max_y >= BOARD_H) {
+    if (max_y >= BOARD_H) {
         return 1;
     }
 
@@ -291,23 +406,43 @@ int move_down(game_t *g) {
         return 1;
     }
 
-    g->p_curr = new_p;
+    g->p = new_p;
     return 0;
 }
 int move_drop(game_t *g) {
     while (!move_down(g))
         ;
 }
-int move_rot_l(game_t *g) {}
-int move_rot_r(game_t *g) {}
-int move_rot_180(game_t *g) {}
-int move_hold(game_t *g) {}
+int move_rot_l(game_t *g) {
+    g->p.angle--;
+    return 0;
+}
+int move_rot_r(game_t *g) {
+    g->p.angle++;
+    return 0;
+}
+int move_rot_180(game_t *g) {
+    g->p.angle--;
+    g->p.angle--;
+    return 0;
+}
+int move_hold(game_t *g) {
+    if (g->held == P_NONE) {
+        g->held = g->p.s;
+        advance_shape(g);
+    } else {
+        int tmp = g->p.s;
+        g->p = new_piece(g->held);
+        g->held = tmp;
+    }
+    return 0;
+}
 
 // move_restart?
 
 typedef struct {
     char *name;
-    void (*f)();
+    int (*f)(game_t *g);
 } move;
 
 move game_moves[] = {{"left", &move_left},       {"right", &move_right},
@@ -355,22 +490,21 @@ int add_piece_override(game_t *g) {
     }
     /* handle drop */
     pos_t cells[4];
-    get_cells(g->p_curr, cells);
+    get_cells(g->p, cells);
     for (int i = 0; i < 4; i++) {
-        g->board[cells[i].y][cells[i].x] = g->p_curr.s;
+        g->board[cells[i].y][cells[i].x] = g->p.s;
     }
 
     g->score += clear_lines(g);
-    g->p_curr = new_piece();
-
-    return check_dead(g, &g->p_curr);
+    advance_shape(g);
+    return check_dead(g, &g->p);
 }
 
 static struct termios oldt, newt;
 void set_up_term() {
     tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
-    newt.c_lflag &= ~(ICANON /* | ECHO */);
+    newt.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
     /* setvbuf(stdout, NULL, _IOFBF, 0); */
