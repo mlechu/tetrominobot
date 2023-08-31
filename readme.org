@@ -6,7 +6,7 @@ what does the player write? a spec file? c/asm too pwnable
 7-bag may help. There should probably be a button to halt the piece midair
 
 ** details
-The program allows the player to create little tetris bots, where a bot is just a decision tree.
+The program allows the player to create little tetris bots, where a bot is just a decision tree(??)
 
 ** exploit
 
@@ -19,6 +19,12 @@ leak is probably more fun than the call
   (x,y): colour
   where each color is piece ORed with the board rather than each board spot
 - Leak a libc address
+
+**** note
+- Maybe no manual input and no dump_state
+- Instead, read the addr value by setting a register to the color of the current piece, which ends
+  up reading the above data.
+- Maybe let players set piece colors on their own
 
 *** bug 2: arbitrary call
 - the ruleset maker treats "function calls" as a table lookup
@@ -61,4 +67,6 @@ VAR = score | pos(x, y) | number
   - actual random pieces
 - color mode
   - color mode that makes address leak harder due to extra bits being
-- player manual
+- programmer's guide :)
+  - excellent debug prints :)
+  - probably not functions, but maybe macros
