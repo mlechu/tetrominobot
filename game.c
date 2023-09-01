@@ -176,8 +176,10 @@ piece_t new_piece(int s) {
     return p;
 }
 
-game_t *new_game() {
-    game_t *g = calloc(sizeof(game_t), 1);
+game_t *new_game(game_t *g) {
+    if (g == NULL) {
+        g = calloc(sizeof(game_t), 1);
+    }
     g->p = new_piece(0);
     for (int i = 0; i < PIECE_PREVIEWS; i++) {
         g->preview[i] = rand_shape();
@@ -185,20 +187,24 @@ game_t *new_game() {
     return g;
 }
 
-/* Return 1 if p overlaps with any placed piece in g */
-int check_dead(game_t *g, const piece_t *const p) {
+/* Return true if p overlaps with any placed piece in g
+ * BUG: The piece can be above the board, so the returned value can be an
+ * out-of-bounds read */
+shape_t check_dead(game_t *g, const piece_t *const p) {
     pos_t cells[4];
     get_cells(*p, cells);
     for (int i = 0; i < 4; i++) {
-        if (g->board[cells[i].y][cells[i].x] != P_NONE) {
-            return 1;
+        shape_t on_board = g->board[cells[i].y][cells[i].x];
+        if (on_board != P_NONE) {
+            printf("check_dead: %x\n", on_board);
+            return on_board;
         }
     }
-    return 0;
+    return P_NONE;
 }
 
 void print_game(game_t *g) {
-    board_t outb = {PIECE_COLOURS[P_NONE]};
+    board_t outb = {0};
     /* board pieces and voids */
     for (int y = 0; y < BOARD_H; y++) {
         for (int x = 0; x < BOARD_W; x++) {
@@ -239,7 +245,7 @@ void print_game(game_t *g) {
     int lpanel[BOARD_H][6];
     int rpanel[BOARD_H][6];
     for (int y = 0; y < BOARD_H; y++) {
-        for (int x = 0; x < BOARD_W; x++) {
+        for (int x = 0; x < 6; x++) {
             lpanel[y][x] = PIECE_COLOURS[P_NONE];
             rpanel[y][x] = PIECE_COLOURS[P_NONE];
         }
@@ -335,7 +341,7 @@ int advance_shape(game_t *g) {
     return 0;
 }
 
-int _move_lr(game_t *g, int diff) {
+shape_t _move_lr(game_t *g, int diff) {
     int old_x = g->p.pos.x;
     piece_t new_p = g->p;
     new_p.pos.x = old_x + diff;
@@ -346,12 +352,13 @@ int _move_lr(game_t *g, int diff) {
     int min_x = min4(cells[0].x, cells[1].x, cells[2].x, cells[3].x);
     int max_x = max4(cells[0].x, cells[1].x, cells[2].x, cells[3].x);
     if (min_x < 0 || max_x >= BOARD_W) {
-        return 1;
+        return P_WALL;
     }
 
     /* check collisions with placed pieces */
-    if (check_dead(g, &new_p)) {
-        return 1;
+    shape_t dead = check_dead(g, &new_p);
+    if (dead) {
+        return dead;
     }
 
     g->p = new_p;
@@ -359,9 +366,9 @@ int _move_lr(game_t *g, int diff) {
 }
 
 ///////// game actions
-int move_left(game_t *g) { return _move_lr(g, -1); }
-int move_right(game_t *g) { return _move_lr(g, 1); }
-int move_down(game_t *g) {
+shape_t move_left(game_t *g) { return _move_lr(g, -1); }
+shape_t move_right(game_t *g) { return _move_lr(g, 1); }
+shape_t move_down(game_t *g) {
     int old_y = g->p.pos.y;
     piece_t new_p = g->p;
     new_p.pos.y = old_y + 1;
@@ -370,25 +377,26 @@ int move_down(game_t *g) {
     get_cells(new_p, cells);
     int max_y = max4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
     if (max_y >= BOARD_H) {
-        return 1;
+        return P_WALL;
     }
 
-    if (check_dead(g, &new_p)) {
-        return 1;
+    shape_t dead = check_dead(g, &new_p);
+    if (dead) {
+        return dead;
     }
 
     g->p = new_p;
     return 0;
 }
-int move_drop(game_t *g) {
+shape_t move_drop(game_t *g) {
     while (!move_down(g))
         ;
-    return 1;
+    return move_down(g);
 }
 
 /* Rotate a test piece and try each of the five coordinates in the kick list
  * (where 0,0 is tried first). If all fail, don't rotate */
-int _move_rot(game_t *g, int old_a, int new_a) {
+shape_t _move_rot(game_t *g, int old_a, int new_a) {
     const pos_t(*kicklist)[5];
     if (g->p.s == P_O) {
         return 0;
@@ -424,31 +432,35 @@ int _move_rot(game_t *g, int old_a, int new_a) {
         /*        !check_dead(g, &new_p)); */
     }
 
-    return 1;
+    /* doesn't really make sense to return check_dead nor p_wall in this failure
+     * case, since each kick attempt can run into a different obstacle */
+    return P_WALL;
 }
 
-int move_rot_l(game_t *g) {
-    return _move_rot(g, g->p.angle, (g->p.angle - 1) & 3);
-}
-int move_rot_r(game_t *g) {
+shape_t move_rot_r(game_t *g) {
     return _move_rot(g, g->p.angle, (g->p.angle + 1) & 3);
 }
-int move_rot_180(game_t *g) {
+shape_t move_rot_180(game_t *g) {
     return _move_rot(g, g->p.angle, (g->p.angle + 2) & 3);
+}
+shape_t move_rot_l(game_t *g) {
+    return _move_rot(g, g->p.angle, (g->p.angle - 1) & 3);
 }
 
 /* can fail due to no space to swap the piece */
-int move_hold(game_t *g) {
+shape_t move_hold(game_t *g) {
     if (g->held == P_NONE) {
         piece_t test_p = new_piece(g->preview[0]);
-        if (check_dead(g, &test_p)) {
-            return 1;
+        shape_t dead = check_dead(g, &test_p);
+        if (dead) {
+            return dead;
         }
         g->held = g->p.s;
         advance_shape(g);
     } else {
         piece_t new_p = new_piece(g->held);
-        if (check_dead(g, &new_p)) {
+        shape_t dead = check_dead(g, &new_p);
+        if (dead) {
             return 1;
         }
         g->held = g->p.s;
@@ -459,7 +471,7 @@ int move_hold(game_t *g) {
 
 /* just for testing the game */
 /* handle inputs until drop, clear lines, spawn new piece, check for death */
-int add_piece_manual(game_t *g) {
+shape_t add_piece_manual(game_t *g) {
     int done = 0;
     print_game(g);
     while (!done) {
@@ -507,16 +519,11 @@ int add_piece_manual(game_t *g) {
     return check_dead(g, &g->p);
 }
 
-move game_moves[] = {{"left", &move_left},       {"right", &move_right},
-                     {"down", &move_down},       {"drop", &move_drop},
-                     {"rot_l", &move_rot_l},     {"rot_r", &move_rot_r},
-                     {"rot_180", &move_rot_180}, {"hold", &move_hold}};
-
-score_t play_manual() {
+score_t play_manual(game_t *g) {
     set_up_term();
     srand(time(NULL));
     int done = 0;
-    game_t *g = new_game();
+    g = new_game(g);
     do {
         done = add_piece_manual(g);
     } while (!done);
@@ -524,6 +531,5 @@ score_t play_manual() {
     score_t score = g->score;
     printf("Score: %llu\n", score);
     restore_term();
-    free(g);
     return score;
 }

@@ -49,21 +49,26 @@ typedef struct {
 
 typedef struct {
     char *name;
-    int (*f)(game_t *g);
+    shape_t (*f)(game_t *g);
 } move;
 
 shape_t rand_shape();
 void get_cells(piece_t p, pos_t out[4]);
 piece_t new_piece(int s);
-game_t *new_game();
-int check_dead(game_t *g, const piece_t *const p);
+game_t *new_game(game_t *g);
+shape_t check_dead(game_t *g, const piece_t *const p);
 void print_game(game_t *g);
 int clear_lines(game_t *g);
 int advance_shape(game_t *g);
-int move_drop(game_t *g);
-int move_rot_180(game_t *g);
-int move_hold(game_t *g);
-int add_piece_manual(game_t *g);
-score_t play_manual();
+shape_t move_left(game_t *g);
+shape_t move_right(game_t *g);
+shape_t move_down(game_t *g);
+shape_t move_drop(game_t *g);
+shape_t move_rot_r(game_t *g);
+shape_t move_rot_180(game_t *g);
+shape_t move_rot_l(game_t *g);
+shape_t move_hold(game_t *g);
+shape_t add_piece_manual(game_t *g);
+score_t play_manual(game_t *g);
 
 #endif

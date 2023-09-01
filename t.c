@@ -10,6 +10,16 @@
 #define PROG_SIZE 0x1000
 // considering a global timeout (seconds) for infra reasons
 
+
+game_t global_game = {0};
+
+uint64_t bot_registers[16];
+
+move game_moves[] = {{"left", &move_left},       {"right", &move_right},
+                     {"down", &move_down},       {"drop", &move_drop},
+                     {"rot_l", &move_rot_l},     {"rot_r", &move_rot_r},
+                     {"rot_180", &move_rot_180}, {"hold", &move_hold}};
+
 /* typedef struct { */
 /*     uint64_t name; */
 /*     // ... */
@@ -71,9 +81,10 @@ int add_piece(game_t *g, rule_t *rules, int r_count) {
     }
 }
 
+
 int main(int argc, char **argv) {
     if (argc == 2 && !strcmp(argv[1], "-p")) {
-        play_manual();
+        play_manual(&global_game);
     } else {
         srand(0);
         /* oob read is behind the board. need to see if this works. */
@@ -81,7 +92,7 @@ int main(int argc, char **argv) {
         char retry[3] = {0};
 
         do {
-            game_t *g = new_game();
+            game_t *g = new_game(NULL);
             puts("Build your own tetrominobot!");
             puts("Enter your bot description:");
             printf("> ");
