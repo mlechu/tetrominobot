@@ -10,6 +10,10 @@
 #define ALT_ENA CSI "?1049h"
 #define ALT_DIS CSI "?1049l"
 
+#define ED_ENTIRE CSI "2J"
+
+/* [?1049h */
+
 #define TERM_ENDCOLOUR "\e[0m"
 #define TERM_COLOUR "\033[%dm"
 
@@ -20,17 +24,25 @@ int min2(int a, int b) { return a <= b ? a : b; }
 int min4(int a, int b, int c, int d) { return min2(min2(a, b), min2(c, d)); }
 
 static struct termios oldt, newt;
+
+void clear_term() {
+    /* uncomment for erasable frames */
+    /* printf(ED_ENTIRE); */
+}
+
 void set_up_term() {
+    setvbuf(stdout, NULL, _IOFBF, 0);
+    /* setvbuf(stdout, NULL, _IONBF, 0); */
+    /* printf(ALT_ENA); */
+    fflush(stdout);
+
     tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
     newt.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-
-    /* setvbuf(stdout, NULL, _IOFBF, 0); */
-    /* printf(ALT_ENA); */
-    fflush(stdout);
+    clear_term();
 }
-
+/* [?1049l */
 void restore_term() {
     /* printf(ALT_DIS); */
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);

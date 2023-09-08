@@ -39,6 +39,7 @@ typedef struct {
 typedef shape_t board_t[BOARD_H][BOARD_W];
 
 typedef struct {
+    /* todo a zero here */
     board_t board;
     score_t score;
     piece_t p;

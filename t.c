@@ -10,7 +10,6 @@
 #define PROG_SIZE 0x1000
 // considering a global timeout (seconds) for infra reasons
 
-
 game_t global_game = {0};
 
 uint64_t bot_registers[16];
@@ -55,9 +54,9 @@ int exec_rule(char *rname, rule_t *rules, int r_count) {
 int check_round() {}
 
 /*
-  BUGGY: This will return the first cell of the shape || board, which may or may
-  not be on the board at the time. maybe?
-*/
+ * BUGGY: This will return the first cell of the shape || board, which may or
+ * may not be on the board at the time. maybe?
+ */
 int check_shape() {}
 // move_restart?
 
@@ -80,7 +79,6 @@ int add_piece(game_t *g, rule_t *rules, int r_count) {
         }
     }
 }
-
 
 int main(int argc, char **argv) {
     if (argc == 2 && !strcmp(argv[1], "-p")) {

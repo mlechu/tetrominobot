@@ -204,6 +204,7 @@ shape_t check_dead(game_t *g, const piece_t *const p) {
 }
 
 void print_game(game_t *g) {
+    clear_term();
     board_t outb = {0};
     /* board pieces and voids */
     for (int y = 0; y < BOARD_H; y++) {
@@ -301,6 +302,7 @@ void print_game(game_t *g) {
     printf("+------------+--------------------+------------+\n");
     printf("|            | wasd  SPC   . - =  |            |\n");
     printf("+------------+--------------------+------------+\n");
+    fflush(stdout);
 }
 
 int clear_lines(game_t *g) {
@@ -435,6 +437,21 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
     /* doesn't really make sense to return check_dead nor p_wall in this failure
      * case, since each kick attempt can run into a different obstacle */
     return P_WALL;
+    /* lots of cool hex numbers are being wasted here...*/
+
+    /* the only way to get the piece above the board is rotation, and if all
+     * above-board cells are nonzero, this will always fail due to collisions.
+     * so there either needs to be
+     *
+     * 1. a guaranteed zero cell (maybe many) to rotate into and then the leak
+     * proceeds with left-right movements, or
+     *
+     * 2. the rotation failure itself can return the maximum collision value (or
+     * all of ORed together).
+     */
+
+    /* It would be quite cool to get the piece to climb above the address and
+     * read it by pushing downwards */
 }
 
 shape_t move_rot_r(game_t *g) {

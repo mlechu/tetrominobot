@@ -1,0 +1,63 @@
+/*
+
+  scrub comments and ;s and \ns and multi-spaces
+
+  * User memory:
+  mem[0] through mem[64] signed ints (CHECKED)
+
+  * Available variables to make decisions:
+  - piece_counter
+  - score
+  - piece_type
+  - piece_x
+  - piece_y
+  - piece_angle
+  - hold_piece_type
+  - board[y][x] (CHECKED)
+
+  * Functions
+  call(move_left)
+  call(move_right)
+  call(move_drop)
+  call(rot_cw)
+  call(rot_ccw)
+  call(rot_180)
+  call(hold)
+  call(die)
+
+  * Lang
+  <e> := <var>
+  | <fcall>
+  | number
+  | <e> + <e>
+  | <e> - <e>
+  | <e> * <e>
+  | <e> / <e>
+  | <e> % <e>
+  | <e> ^ <e>
+  | <e> & <e>
+  | <e> \| <e>
+  | <e> == <e>
+  | <e> > <e>
+  | <e> < <e>
+  | <e> >= <e>
+  | <e> <= <e>
+
+  <stmt> := <e> | <ifelse>
+  <ifelse> := if ( <e> ) { <stmt>* } else { <stmt>* }
+  <macro> := macro ident { <stmt>+ }
+  <tbot> := <macro>{0-256} robot ident { <stmt>* }
+*/
+
+macro a {
+
+}
+
+{
+     if (piece_counter > 90) {
+         move_right;
+     } else {
+         move_drop;
+     }
+}
+overwrite payload here probably
