@@ -1,4 +1,6 @@
 * tetrominobot
+"you can put AI engineer in your twitter bio after this one"
+
 provided to the player: all filled boxes, score, tick
 
 what does the player write? a spec file? c/asm too pwnable
@@ -30,9 +32,9 @@ leak is probably more fun than the call
 - the ruleset maker treats "function calls" as a table lookup
 - TODO player can somehow sneak arbitrary call past the decision tree parser
 
-*** optional bug: srand control
-- hash of the program won't work; i want random pieces for any given bot(???)
-- Maybe just a small buffer overflow
+*** optional bug: srand (piece generator) control
+- hash of the program (add all bytes)
+- easier idea: use ((pieces) + the number of moves before the most recent piece was dropped) mod 7
 
 ** implementation
 - player spec file -> list of rules
@@ -46,7 +48,7 @@ leak is probably more fun than the call
 - piece timeout value
 
 ** flag
-- {tell the marketing department that we use 99% fewer CPU cycles than competing apps}
+- maple{tell the marketing department that we use 99% fewer CPU cycles than competing apps}
 
 ** player manual
 commit() may be used before a drop() in this simulator.
