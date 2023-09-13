@@ -1,63 +1,105 @@
 /*
-
   scrub comments and ;s and \ns and multi-spaces
 
-  * User memory:
-  mem[0] through mem[64] signed ints (CHECKED)
+  <var> :=
+  | piece_counter
+  | score
+  | piece_type
+  | piece_x
+  | piece_y
+  | ghost_y
+  | piece_angle
+  | hold_piece_type
+  | mem[<e>] (CHECKED)
+  | board[<e>][<e>] (CHECKED)
 
-  * Available variables to make decisions:
-  - piece_counter
-  - score
-  - piece_type
-  - piece_x
-  - piece_y
-  - piece_angle
-  - hold_piece_type
-  - board[y][x] (CHECKED)
+  <call> :=
+  | call(left)
+  | call(right)
+  | call(drop)
+  | call(rot_cw)
+  | call(rot_ccw)
+  | call(rot_180)
+  | call(hold)
+  | call(die)
 
-  * Functions
-  call(move_left)
-  call(move_right)
-  call(move_drop)
-  call(rot_cw)
-  call(rot_ccw)
-  call(rot_180)
-  call(hold)
-  call(die)
+  <val> := number | <var>
 
   * Lang
-  <e> := <var>
-  | <fcall>
-  | number
-  | <e> + <e>
-  | <e> - <e>
-  | <e> * <e>
-  | <e> / <e>
-  | <e> % <e>
-  | <e> ^ <e>
-  | <e> & <e>
-  | <e> \| <e>
-  | <e> == <e>
-  | <e> > <e>
-  | <e> < <e>
-  | <e> >= <e>
-  | <e> <= <e>
+  <e> :=
+  | <val>
+  | <val> + <val>
+  | <val> - <val>
+  | <val> * <val>
+  | <val> / <val>
+  | <val> % <val>
+  | <val> ^ <val>
+  | <val> & <val>
+  | <val> \| <val>
+  | <val> == <val>
+  | <val> != <val>
+  | <val> > <val>
+  | <val> < <val>
+  | <val> >= <val>
+  | <val> <= <val>
 
-  <stmt> := <e> | <ifelse>
-  <ifelse> := if ( <e> ) { <stmt>* } else { <stmt>* }
-  <macro> := macro ident { <stmt>+ }
-  <tbot> := <macro>{0-256} robot ident { <stmt>* }
+  <stmt> := <ifelse> | mem[n] = <e> | mem[n] = <call> | <call> | <mcall>
+  <ifelse> := if ( <e> ) { <stmt> } else { <stmt> }
+  <macro> := macro { <stmt>* }
+  <tbot> := <macro>{0-256} <robot_name> { <stmt>* }
 */
 
-macro a {
+/* call performs a lookup  */
 
+robot {
+    macro a {} /* empty macro bug? */
+
+    macro rfill {
+        /* bottom row == 21?? */
+        mem[10] = board[21][0];
+        mem[11] = board[21][1];
+        mem[12] = board[21][2];
+        mem[13] = board[21][3];
+        mem[14] = board[21][4];
+        mem[15] = board[21][5];
+        mem[16] = board[21][6];
+        mem[17] = board[21][7];
+        mem[18] = board[21][8];
+        mem[19] = board[21][9];
+    }
+
+    if (piece_counter < 90) {
+        move_right;
+    } else {
+        move_drop;
+    }
+
+    move_right;
+    move_right;
+
+    srand override payload here probably
 }
 
-{
-     if (piece_counter > 90) {
-         move_right;
-     } else {
-         move_drop;
-     }
+default_bot {
+    if (score > 10000) {
+        call(die)
+    } else if (mem[0] == 0) {
+        mem[0] = call(left)
+    } else if (mem[1] == 0) {
+        mem[1] = 1
+        call(right)
+        call(drop)
+    } else {
+        call(rot_cw)
+        call(right)
+        call(right)
+        call(right)
+        call(drop)
+        call(rot_cw)
+        call(right)
+        call(right)
+        call(right)
+        call(right)
+        call(drop)
+    }
 }
-overwrite payload here probably

@@ -69,6 +69,7 @@ shape_t move_rot_r(game_t *g);
 shape_t move_rot_180(game_t *g);
 shape_t move_rot_l(game_t *g);
 shape_t move_hold(game_t *g);
+/* shape_t move_die(game_t *g); */
 shape_t add_piece_manual(game_t *g);
 score_t play_manual(game_t *g);
 

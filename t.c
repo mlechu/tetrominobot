@@ -88,37 +88,31 @@ int main(int argc, char **argv) {
         int done = 0;
         char retry[3] = {0};
 
+        /* do { */
+        game_t *g = new_game(NULL);
+        puts("Build your own tetrominobot!");
+        puts("Enter your bot description:");
+        printf("> ");
+
+        char user_in[PROG_SIZE];
+        fgets(user_in, PROG_SIZE, stdin);
+        printf("program: %s\n", user_in);
+        uint64_t ppos = 0;
+        yyparse((char *) &user_in, &ppos, g);
+
+        /* rule_t *rules = parse_prog(user_in); */
+
         do {
-            game_t *g = new_game(NULL);
-            /* puts("Build your own tetrominobot!"); */
-            /* puts("Enter your bot description:"); */
-            /* printf("> "); */
-            if (argc < 2) {
-                puts("enter a prog");
-                return 1;
-            } else {
-                yyparse(argv[1], g);
-            }
+            done = 1;
+            /* done = add_piece(g, rules, 0); */
+        } while (!done);
 
-            /* char user_in[PROG_SIZE]; */
-            /* fgets(user_in, PROG_SIZE, stdin); */
-            /* printf("program: %s\n", user_in); */
-            /* yyparse(user_in, g); */
-
-            /* rule_t *rules = parse_prog(user_in); */
-
-            do {
-                done = 1;
-                /* done = add_piece(g, rules, 0); */
-            } while (!done);
-
-            printf("Score: %llu\n", g->score);
-            puts("Retry? (y/N)");
-            printf("> ");
-            fgets(retry, 3, stdin);
-            free(g); // free each time?
-
-        } while (retry[0] == 'y' || retry[0] == 'Y');
+        printf("Score: %llu\n", g->score);
+        /* puts("Retry? (y/N)"); */
+        /* printf("> "); */
+        /* fgets(retry, 3, stdin); */
+        free(g); // free each time?
+        /* } while (retry[0] == 'y' || retry[0] == 'Y'); */
     }
 
     return 0;

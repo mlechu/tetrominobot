@@ -1,5 +1,5 @@
 CC := gcc
-CCFLAGS := -fsanitize=address -g -I $(CURDIR)
+CCFLAGS := -g -I $(CURDIR) # -fsanitize=address
 OUTDIR := $(CURDIR)/out
 
 all: $(OUTDIR)/t |$(OUTDIR)
