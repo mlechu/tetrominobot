@@ -1,20 +1,19 @@
 CC := gcc
-CCFLAGS := -fsanitize=address -g
+CCFLAGS := -fsanitize=address -g -I $(CURDIR)
 OUTDIR := $(CURDIR)/out
 
-all: $(OUTDIR)/tbot $(OUTDIR)/t
-	mkdir $(@D)
+all: $(OUTDIR)/t |$(OUTDIR)
 
 $(OUTDIR):
-	mkdir -p $(@D)
-
-$(OUTDIR)/tbot: $(OUTDIR)/tbot.tab.c |$(OUTDIR)
-	$(CC) -lm -o $@ $<
+	mkdir -p $(OUTDIR)
 
 $(OUTDIR)/tbot.tab.c: tbot.y |$(OUTDIR)
-	bison $< -Wcounterexamples -o $@
+	bison -d $< -Wcounterexamples -o $@
 
-$(OUTDIR)/t: t.c game.c |$(OUTDIR)
+$(OUTDIR)/parse: $(OUTDIR)/tbot.tab.c |$(OUTDIR)
+	$(CC) -c $(CCFLAGS) -lm -o $@ $<
+
+$(OUTDIR)/t: t.c game.c $(OUTDIR)/parse |$(OUTDIR)
 	$(CC) $(CCFLAGS) $^ -o $@
 
 clean:

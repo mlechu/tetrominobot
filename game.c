@@ -138,23 +138,26 @@ char bag[7];
 
 /* at least a little random */
 shape_t rand_shape() {
-    if (bag_fullness == 0) {
-        memset(bag, 0, sizeof bag);
-        bag_fullness = 7;
-    }
-    int r = rand() % bag_fullness;
-    int p;
-    for (p = 0; p < 7; p++) {
-        if (bag[p] == 0) {
-            if (r == 0) {
-                bag[p] = 1;
-                break;
-            }
-            r--;
-        }
-    }
-    bag_fullness--;
-    return p + 1;
+    /* if (bag_fullness == 0) { */
+    /*     memset(bag, 0, sizeof bag); */
+    /*     bag_fullness = 7; */
+    /* } */
+    /* int r = (rand() >> 12) % bag_fullness; */
+    /* int p; */
+    /* for (p = 0; p < 7; p++) { */
+    /*     if (bag[p] == 0) { */
+    /*         if (r == 0) { */
+    /*             bag[p] = 1; */
+    /*             break; */
+    /*         } */
+    /*         r--; */
+    /*     } */
+    /* } */
+    /* bag_fullness--; */
+    /* return p + 1; */
+
+    /* I pieces only for now */
+    return 1;
 }
 
 void get_cells(piece_t p, pos_t out[4]) {
@@ -190,6 +193,8 @@ game_t *new_game(game_t *g) {
 /* Return true if p overlaps with any placed piece in g
  * BUG: The piece can be above the board, so the returned value can be an
  * out-of-bounds read */
+/* Other than intentional leaks, do not call unless you're sure the piece is on
+ * the board */
 shape_t check_dead(game_t *g, const piece_t *const p) {
     pos_t cells[4];
     get_cells(*p, cells);
@@ -217,6 +222,7 @@ void print_game(game_t *g) {
     piece_t ghost = g->p;
     piece_t new_ghost = ghost;
     new_ghost.pos.y++;
+    printf("GHOST: "); /* annotate check_dead */
     while (1) {
         pos_t cells[4];
         get_cells(new_ghost, cells);
@@ -306,7 +312,7 @@ void print_game(game_t *g) {
 }
 
 int clear_lines(game_t *g) {
-    int rowcnt[BOARD_H] = {0};
+    int rowcnt[BOARD_H] = {0}; /* row fullness */
     for (int y = 0; y < BOARD_H; y++) {
         for (int x = 0; x < BOARD_W; x++) {
             if (g->board[y][x] != P_NONE) {
@@ -315,18 +321,28 @@ int clear_lines(game_t *g) {
         }
     }
 
+    /* a bug here could work if there's a way to clear more lines */
+    /* maybe if piece == T and move_up == dead then score_i = 4 and t-spin triple
+     * gives score_i = 5 */
     int score[] = {0, 100, 300, 500, 800};
     int score_i = 0;
 
-    for (int dst_y = BOARD_H - 1, src_y = BOARD_H - 1; dst_y >= 0;
-         dst_y--, src_y--) {
-        while (rowcnt[src_y] == BOARD_W) { /* clear */
-            src_y--;
-            score_i++;
-        }
+    int src_y = BOARD_H - 1;
 
-        for (int x = 0; x < BOARD_W; x++) {
-            g->board[dst_y][x] = src_y < 0 ? P_NONE : g->board[src_y][x];
+    /* I suppose an overflow when shifting things down could also be good */
+    for (int dst_y = BOARD_H - 1; dst_y >= 0; dst_y--, src_y--) {
+        if (src_y < 0) { /* nothing to shift; copy a blank line */
+            for (int x = 0; x < BOARD_W; x++) {
+                g->board[dst_y][x] = P_NONE;
+            }
+        } else {
+            while (rowcnt[src_y] == BOARD_W && src_y >= 0) { /* clear */
+                src_y--;
+                score_i++;
+            }
+            for (int x = 0; x < BOARD_W; x++) {
+                g->board[dst_y][x] = g->board[src_y][x];
+            }
         }
     }
     return score[score_i];
@@ -408,6 +424,17 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
         kicklist = &KICKS_A[old_a & 3][new_a & 3];
     }
 
+    /* TODO: Currently returning the max fail value so the address is easy to
+     * get.  It would be better to 1. return P_WALL here, 2. have a guaranteed
+     * hole in the ceiling, and 3. have the player use a t-piece or something to
+     * climb up there
+     */
+
+    /* It would be quite cool to get the piece to climb above the address and
+     * read it by pushing downwards */
+
+    int lol_out = P_WALL;
+
     for (int i = 0; i < 5; i++) {
         /* printf("ROT: trying pos %d: (%d, %d)\n", i, (*kicklist)[i].x, */
         /*        (*kicklist)[i].y); */
@@ -422,36 +449,20 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
         int max_x = max4(cells[0].x, cells[1].x, cells[2].x, cells[3].x);
         int max_y = max4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
 
-        if (min_x >= 0 && max_x < BOARD_W && max_y < BOARD_H &&
-            !check_dead(g, &new_p)) {
+        if (min_x < 0 || max_x >= BOARD_W || max_y >= BOARD_H) {
+            puts("pwall");
+            lol_out = max2(lol_out, P_WALL);
+        } else if (check_dead(g, &new_p)) {
+            puts("cd");
+            lol_out = max2(lol_out, check_dead(g, &new_p));
+        } else {
             /* printf("ROT: Success\n"); */
             g->p = new_p;
             return 0;
         }
-        /* printf("ROT: Failed. L ok: %d, R ok: %d, D ok: %d, checkdead ok: " */
-        /*        "%d\n", */
-        /*        min_x >= 0, max_x < BOARD_W, max_y < BOARD_H, */
-        /*        !check_dead(g, &new_p)); */
     }
-
-    /* doesn't really make sense to return check_dead nor p_wall in this failure
-     * case, since each kick attempt can run into a different obstacle */
-    return P_WALL;
-    /* lots of cool hex numbers are being wasted here...*/
-
-    /* the only way to get the piece above the board is rotation, and if all
-     * above-board cells are nonzero, this will always fail due to collisions.
-     * so there either needs to be
-     *
-     * 1. a guaranteed zero cell (maybe many) to rotate into and then the leak
-     * proceeds with left-right movements, or
-     *
-     * 2. the rotation failure itself can return the maximum collision value (or
-     * all of ORed together).
-     */
-
-    /* It would be quite cool to get the piece to climb above the address and
-     * read it by pushing downwards */
+    /* printf("rot: 0x%x\n", lol_out); */
+    return lol_out;
 }
 
 shape_t move_rot_r(game_t *g) {

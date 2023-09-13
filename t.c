@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "game.h"
+#include "out/tbot.tab.h"
 /* #include "util.h" */
 
 #define PROG_SIZE 0x1000
@@ -51,13 +52,13 @@ int exec_rule(char *rname, rule_t *rules, int r_count) {
 }
 
 ///////// checkable functions
-int check_round() {}
+/* int check_round() {} */
 
 /*
  * BUGGY: This will return the first cell of the shape || board, which may or
  * may not be on the board at the time. maybe?
  */
-int check_shape() {}
+/* int check_shape() {} */
 // move_restart?
 
 // return 1 when done
@@ -84,24 +85,31 @@ int main(int argc, char **argv) {
     if (argc == 2 && !strcmp(argv[1], "-p")) {
         play_manual(&global_game);
     } else {
-        srand(0);
-        /* oob read is behind the board. need to see if this works. */
         int done = 0;
         char retry[3] = {0};
 
         do {
             game_t *g = new_game(NULL);
-            puts("Build your own tetrominobot!");
-            puts("Enter your bot description:");
-            printf("> ");
+            /* puts("Build your own tetrominobot!"); */
+            /* puts("Enter your bot description:"); */
+            /* printf("> "); */
+            if (argc < 2) {
+                puts("enter a prog");
+                return 1;
+            } else {
+                yyparse(argv[1], g);
+            }
 
-            char user_in[PROG_SIZE];
-            fgets(user_in, PROG_SIZE, stdin);
-            rule_t *rules = parse_prog(user_in);
-            printf("program: %s\n", user_in);
+            /* char user_in[PROG_SIZE]; */
+            /* fgets(user_in, PROG_SIZE, stdin); */
+            /* printf("program: %s\n", user_in); */
+            /* yyparse(user_in, g); */
+
+            /* rule_t *rules = parse_prog(user_in); */
 
             do {
-                done = add_piece(g, rules, 0);
+                done = 1;
+                /* done = add_piece(g, rules, 0); */
             } while (!done);
 
             printf("Score: %llu\n", g->score);
@@ -117,3 +125,4 @@ int main(int argc, char **argv) {
 }
 
 /* Just to make the libc leak work, we should be maintaining a list of pieces */
+/* what did i mean by this? */
