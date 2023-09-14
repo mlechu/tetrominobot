@@ -90,16 +90,21 @@ default_bot {
         call(right)
         call(drop)
     } else {
-        call(rot_cw)
+        call(rot_r)
         call(right)
         call(right)
         call(right)
         call(drop)
-        call(rot_cw)
+        call(rot_r)
         call(right)
         call(right)
         call(right)
         call(right)
         call(drop)
     }
+}
+
+
+
+default_bot {    if (score > 10000) {        call(die)    } else if (mem[0] == 0) {        mem[0] = call(left)    } else if (mem[1] == 0) {        mem[1] = 1        call(right)        call(drop)    } else {        call(rot_r)        call(right)        call(right)        call(right)        call(drop)        call(rot_r)        call(right)        call(right)        call(right)        call(right)        call(drop)    }
 }

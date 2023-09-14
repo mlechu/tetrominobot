@@ -28,7 +28,7 @@
     int game_funcs = sizeof(functable) / sizeof(fte_t);
 
     int isfunc(char *name, uint64_t n) {
-        printf("name: %s, n: %lld", name, n);
+        printf("\tgfunc name: %.*s\n", n, name);
         for (int i = 0; i < game_funcs; i++) {
             if (!strncmp(functable[i].name, name, n)) {
                 return 1;
@@ -111,74 +111,68 @@ input:
 | input tbot
 ;
 
-/* line: */
-/* '\n' */
-/* | exp '\n'  { printf ("\t%d\n", $1); } */
-/* ; */
-
 tbot:
-'{' stmts '}' { printf("\ttbot\n");}
+'{' stmts '}' { printf("\t\ttbot\n");}
 ;
 
 fcall:
-"call" '(' GFUNC ')' { printf("\tfcall\n");}
+"call" '(' GFUNC ')' { printf("\t\tfcall\n");}
 ;
 
 stmts:
 %empty
-| stmt semicolon.opt stmts { printf("\tstmts\n");}
+| stmt semicolon.opt stmts { printf("\t\tstmts\n");}
 ;
 
-ifelse:
-IF '(' exp ')' '{' stmts '}'
-
 stmt:
-IF '(' exp ')' '{' stmts '}' ELSE '{' stmts '}'  { printf("\tifelse\n");}
-| MEM '[' exp ']' '=' exp { printf("\tmemexp\n");}
-| MEM '[' exp ']' '=' fcall { printf("\tmemfcall\n");}
+ifelse
+| mem '=' exp { printf("\t\tmem_assign\n"); }
 | fcall
 /* or macro call? */
 ;
 
-var:
-"mem"
-| "piece_counter"    { $$ = (int)g->p.s; }
-| "score"            { $$ = (int)g->score; }
-| "piece_type"       { $$ = (int)g->p.s; }
-| "piece_x"          { $$ = (int)g->p.s; }
-| "piece_y"          { $$ = (int)g->p.s; }
-| "ghost_y"          { $$ = (int)g->p.s; }
-| "piece_angle"      { $$ = (int)g->p.s; }
-| "hold_piece_type"  { $$ = (int)g->p.s; }
-| "board"            { $$ = (int)g->p.s; }
-| fcall
+ifelse:
+IF '(' exp ')' '{' stmts '}'
+| IF '(' exp ')' '{' stmts '}' ELSE '{' stmts '}'
+| IF '(' exp ')' '{' stmts '}' ELSE ifelse
 ;
 
-binop:
-exp "||" exp { $$ = $1 || $3; }
-| exp "&&" exp { $$ = $1 && $3; }
-| exp '|' exp { $$ = $1 | $3; }
-| exp '^' exp { $$ = $1 ^ $3; }
-| exp '&' exp { $$ = $1 & $3; }
-| exp "==" exp { $$ = $1 == $3; }
-| exp "!=" exp { $$ = $1 != $3; }
-| exp '>' exp { $$ = $1 > $3; }
-| exp ">=" exp { $$ = $1 >= $3; }
-| exp '<' exp { $$ = $1 < $3; }
-| exp "<=" exp { $$ = $1 <= $3; }
-| exp "<<" exp { $$ = $1 << $3; }
-| exp ">>" exp { $$ = $1 >> $3; }
-| exp '+' exp { $$ = $1 + $3; }
-| exp '-' exp { $$ = $1 - $3; }
-| exp '*' exp { $$ = $1 * $3; }
-| exp '/' exp { $$ = $1 / $3; }
-| exp '%' exp { $$ = $1 % $3; }
+/* writable vars */
+mem:
+MEM '[' exp ']' { printf("\t\tmem\n");}
 ;
 
 exp:
-var
-| NUM
-| binop
+NUM
+| mem
+| BOARD '[' exp ']' '[' exp ']' { $$ = (int)g->board[$3][$6]; }
+| "piece_counter"               { $$ = (int)g->p.s; } // todo
+| "score"                       { $$ = (int)g->score; }
+| "piece_type"                  { $$ = (int)g->p.s; }
+| "piece_x"                     { $$ = (int)g->p.pos.x; }
+| "piece_y"                     { $$ = (int)g->p.pos.y; }
+| "ghost_y"                     { $$ = (int)g->p.s; } // todo
+| "piece_angle"                 { $$ = (int)g->p.angle; }
+| "hold_piece_type"             { $$ = (int)g->held; }
+| fcall
+| exp "||" exp         { $$ = $1 || $3; }
+| exp "&&" exp         { $$ = $1 && $3; }
+| exp '|' exp          { $$ = $1 |  $3; }
+| exp '^' exp          { $$ = $1 ^  $3; }
+| exp '&' exp          { $$ = $1 &  $3; }
+| exp "==" exp         { $$ = $1 == $3; }
+| exp "!=" exp         { $$ = $1 != $3; }
+| exp '>' exp          { $$ = $1 >  $3; }
+| exp ">=" exp         { $$ = $1 >= $3; }
+| exp '<' exp          { $$ = $1 <  $3; }
+| exp "<=" exp         { $$ = $1 <= $3; }
+| exp "<<" exp         { $$ = $1 << $3; }
+| exp ">>" exp         { $$ = $1 >> $3; }
+| exp '+' exp          { $$ = $1 +  $3; }
+| exp '-' exp          { $$ = $1 -  $3; }
+| exp '*' exp          { $$ = $1 *  $3; }
+| exp '/' exp          { $$ = $1 /  $3; }
+| exp '%' exp          { $$ = $1 %  $3; }
 | '~' exp              { $$ = ~$2;           }
 | '-' exp  %prec NEG   { $$ = -$2;           }
 | '!' exp              { $$ = !$2;           }
@@ -191,7 +185,7 @@ semicolon.opt: | ';';
 %%
 
 void yyerror (char *prog, uint64_t *ppos, game_t *g, char *s) {
-    fprintf (stderr, "%s\n", s);
+    fprintf (stderr, "at pos %lld (\"%c\"): %s\n", *ppos, prog[*ppos], s);
 }
 
 #include <ctype.h>
@@ -204,6 +198,7 @@ uint64_t eat_ws(char *p, uint64_t ppos) {
             return ppos;
         case ' ':
         case '\t':
+        case '\r':
         case '\n':
             ppos++;
         }
@@ -211,7 +206,8 @@ uint64_t eat_ws(char *p, uint64_t ppos) {
     return ppos;
 }
 
-uint64_t till_ws(char *p, uint64_t ppos) {
+/* One past last char of what is probably a token */
+uint64_t til_end(char *p, uint64_t ppos) {
     while (p && isgraph(p[ppos])) {
         ppos++;
     }
@@ -223,7 +219,20 @@ typedef struct {
     int yyshit;
 } tokdef_t;
 
-tokdef_t toks[] = {
+tokdef_t punct_toks[] = {
+    {"<<", LSHIFT},
+    {">>", RSHIFT},
+    {"<=", LTE},
+    {">=", GTE},
+    {"==", EE},
+    {"!=", NE},
+    {"||", LOR},
+    {"&&", LAND},
+    {0, 0}
+};
+
+/* multi-char non-gamefunc toks */
+tokdef_t alpha_toks[] = {
     {"if", IF},
     {"else", ELSE},
     {"piece_counter", PIECE_COUNTER},
@@ -236,75 +245,89 @@ tokdef_t toks[] = {
     {"hold_piece_type", HOLD_PIECE_TYPE},
     {"board", BOARD},
     {"mem", MEM},
-    {"call", CALL}
+    {"call", CALL},
+    {0, 0}
 };
 
-
-int toksearch(char *tok, uint64_t l) {
-    int toksn = (sizeof(toks)/ sizeof(tokdef_t));
-    for (int i = 0; i < toksn; i++) {
-        if (!strncmp(tok, toks[i].s, l)) {
-            printf("\ttokserach found %s: \n", toks[i].s);
-            return toks[i].yyshit;
+/* Returns position.
+ * l (until whitespace) must be at least the length of the search term
+ */
+int toksearch(tokdef_t *tlist, char *tok, uint64_t l) {
+    for (int i = 0; tlist[i].s != NULL; i++) {
+        if (l >= strlen(tlist[i].s) && !strncmp(tok, tlist[i].s, l)) {
+            printf("\tSTR %s\n", tlist[i].s);
+            return i;
         }
     }
-    return YYUNDEF;
+    return -1;
 }
-
+/*
+ * Eats whitespace, checks the token's first char,
+ * finds token's end, and increments the ppos accordingly.
+ *
+ * Tokens satisfy one of the following delicate checks:
+ * - (ispunct) Two-character ops and parens
+ * -           Single-character ops and parens
+ * - (isdigit) Digits
+ * - (isalpha or _) game vars or funcs
+ *
+ * Treat anything else as EOF.
+ */
 int yylex (char *prog, uint64_t *ppos, game_t *g) {
     /* yydebug = 1; */
-    puts("\tlexing...");
     char *prog_0 = prog;
-    char *ws = " \t\n";
 
     *ppos = eat_ws(prog, *ppos);
     uint64_t p = *ppos;
-    uint64_t pend = p + strcspn(prog + p, ws);
-    int out = YYUNDEF;
+    /* printf("PPOS \"%d\"\n", p); */
+    /* printf("TOKEN START \"%x\"\n", prog[p]); */
+    uint64_t max_end = til_end(prog, p);
+    /* int out = YYUNDEF; */
 
-    if (isdigit(prog[p])) {
-        /* Integers */
-
-        pend = p + strspn(prog + p, "01234567890");
-        if (sscanf (prog + p, "%d", &yylval) != 1) {
-            puts("bad number fucko");
-            abort ();
-        }
-        printf("\tnum: %d\n", yylval);
-        out = NUM;
-
-    } else if (isalpha(prog[p])) {
-        pend = p;
-        while (isalpha(prog[pend])) {
-            pend++;
+    if (ispunct(prog[p])) {
+        int t_i = toksearch(punct_toks, prog + p, max_end - p);
+        if (t_i != -1) {
+            /* long punct tok */
+            *ppos = p + strlen(punct_toks[t_i].s);
+            return punct_toks[t_i].yyshit;
+        } else {
+            /* one char */
+            printf("\t%c\n", prog[p]);
+            *ppos = p + 1;
+            return prog[p];
         }
 
-        /* keywords */
-        out = toksearch(prog + p, pend - p);
-
-        if (out == YYUNDEF && isfunc(prog + p, pend - p)) {
-
-            puts("\tgfunc");
-            out = GFUNC;
-        } else if (out == YYUNDEF) {
-            puts("heyeyyyyyyyyyyyyyyyyy");
-            printf("\talpha");
-            /* if (scanf ("%s", &yylval) != 1) { */
-            /*     abort (); */
-            /* } */
+    } else if (isdigit(prog[p])) {
+        int end = p;
+        /* todo: hex? */
+        while (isdigit(prog[end])) {
+            end++;
         }
+        if (sscanf(prog + p, "%d", &yylval) != 1) {
+            abort();
+        }
+        printf("\t%d\n", yylval);
+        *ppos = end;
+        return NUM;
 
-    } else if (prog[p] == EOF) {
-        out = YYEOF;
+    } else if (isalpha(prog[p]) || prog[p] == '_') {
+        int end = p;
+        while (isalnum(prog[end]) || prog[end] == '_') {
+            end++;
+        }
+        *ppos = end;
 
+        int at_i = toksearch(alpha_toks, prog + p, end - p);
+        if (at_i != -1) {
+            return alpha_toks[at_i].yyshit;
+        } else if (isfunc(prog + p, end - p)) {
+            return GFUNC;
+        } else {
+            return YYUNDEF;
+        }
     } else {
-        printf("\tlex returning char: %c\n", prog[p]);
-        pend = *ppos + 1;
-        out = prog[p];
+        return YYEOF;
     }
-
-    *ppos = pend;
-    return out;
 }
 
 /* int main (int argc, char **argv) { */
