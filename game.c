@@ -8,13 +8,13 @@ const int PIECE_COLOURS[] = {16, 14, 11, 13, 12, 208, 10, 9};
 const int GHOST_COLOURS[] = {16, 6, 3, 5, 4, 130, 2, 1};
 
 /*
-      x 0 1 2 3
-    y
-    0
-    1
-    2
-    3
- */
+  x 0 1 2 3
+  y
+  0
+  1
+  2
+  3
+*/
 
 /* [angle][shape][cell] */
 const pos_t SHAPES[4][8][4] = {
@@ -138,26 +138,26 @@ char bag[7];
 
 /* at least a little random */
 shape_t rand_shape() {
-    /* if (bag_fullness == 0) { */
-    /*     memset(bag, 0, sizeof bag); */
-    /*     bag_fullness = 7; */
-    /* } */
-    /* int r = (rand() >> 12) % bag_fullness; */
-    /* int p; */
-    /* for (p = 0; p < 7; p++) { */
-    /*     if (bag[p] == 0) { */
-    /*         if (r == 0) { */
-    /*             bag[p] = 1; */
-    /*             break; */
-    /*         } */
-    /*         r--; */
-    /*     } */
-    /* } */
-    /* bag_fullness--; */
-    /* return p + 1; */
+    if (bag_fullness == 0) {
+        memset(bag, 0, sizeof bag);
+        bag_fullness = 7;
+    }
+    int r = (rand() >> 12) % bag_fullness;
+    int p;
+    for (p = 0; p < 7; p++) {
+        if (bag[p] == 0) {
+            if (r == 0) {
+                bag[p] = 1;
+                break;
+            }
+            r--;
+        }
+    }
+    bag_fullness--;
+    return p + 1;
 
     /* I pieces only for now */
-    return 1;
+    /* return 1; */
 }
 
 void get_cells(piece_t p, pos_t out[4]) {
@@ -242,11 +242,15 @@ void print_game(game_t *g) {
         outb[ghost_cells[i].y][ghost_cells[i].x] = g->p.gcolour;
     }
 
-    /* curr piece */
+    /* when dead, draw ghost of curr piece only */
+    int dead = check_dead(g, &g->p);
     pos_t cells[4];
-    get_cells(g->p, cells);
-    for (int i = 0; i < 4; i++) {
-        outb[cells[i].y][cells[i].x] = g->p.colour;
+    if (!dead) {
+        /* curr piece */
+        get_cells(g->p, cells);
+        for (int i = 0; i < 4; i++) {
+            outb[cells[i].y][cells[i].x] = g->p.colour;
+        }
     }
 
     int lpanel[BOARD_H][6];
@@ -263,10 +267,9 @@ void print_game(game_t *g) {
         piece_t held = new_piece(g->held);
         held.pos.x = 1;
         held.pos.y = 1;
-        pos_t lcells[4];
-        get_cells(held, lcells);
+        get_cells(held, cells);
         for (int i = 0; i < 4; i++) {
-            lpanel[lcells[i].y][lcells[i].x] = PIECE_COLOURS[held.s];
+            lpanel[cells[i].y][cells[i].x] = PIECE_COLOURS[held.s];
         }
     }
 
@@ -275,7 +278,6 @@ void print_game(game_t *g) {
         piece_t prv = new_piece(g->preview[i]);
         prv.pos.x = 1;
         prv.pos.y = i * 4 + 1;
-        pos_t rcells[4];
         get_cells(prv, cells);
         for (int i = 0; i < 4; i++) {
             rpanel[cells[i].y][cells[i].x] = PIECE_COLOURS[prv.s];
@@ -322,8 +324,8 @@ int clear_lines(game_t *g) {
     }
 
     /* a bug here could work if there's a way to clear more lines */
-    /* maybe if piece == T and move_up == dead then score_i = 4 and t-spin triple
-     * gives score_i = 5 */
+    /* maybe if piece == T and move_up == dead then score_i = 4 and t-spin
+     * triple gives score_i = 5 */
     int score[] = {0, 100, 300, 500, 800};
     int score_i = 0;
 
@@ -406,7 +408,7 @@ shape_t move_down(game_t *g) {
     g->p = new_p;
     return 0;
 }
-shape_t move_drop(game_t *g) {
+shape_t move_drop_no_commit(game_t *g) {
     while (!move_down(g))
         ;
     return move_down(g);
@@ -497,12 +499,33 @@ shape_t move_hold(game_t *g) {
     return 0;
 }
 
+/* To be called after drop */
+shape_t move_commit(game_t *g) {
+    int dead = check_dead(g, &g->p);
+    if (dead)
+        return dead;
+    pos_t cells[4];
+    get_cells(g->p, cells);
+    for (int i = 0; i < 4; i++) {
+        g->board[cells[i].y][cells[i].x] = g->p.s;
+    }
+
+    g->score += clear_lines(g);
+    advance_shape(g);
+    return check_dead(g, &g->p);
+}
+
+/* Player-visible drop function */
+shape_t move_drop(game_t *g) {
+    move_drop_no_commit(g);
+    return move_commit(g);
+}
+
 /* just for testing the game */
 /* handle inputs until drop, clear lines, spawn new piece, check for death */
 shape_t add_piece_manual(game_t *g) {
-    int done = 0;
     print_game(g);
-    while (!done) {
+    while (1) {
         char in = getchar();
         switch (in) {
         case '-':
@@ -512,9 +535,7 @@ shape_t add_piece_manual(game_t *g) {
             move_right(g);
             break;
         case '.':
-            move_drop(g);
-            done = 1;
-            break;
+            return move_drop(g);
         case 'w':
             move_hold(g);
             break;
@@ -535,16 +556,6 @@ shape_t add_piece_manual(game_t *g) {
         }
         print_game(g);
     }
-    /* handle drop */
-    pos_t cells[4];
-    get_cells(g->p, cells);
-    for (int i = 0; i < 4; i++) {
-        g->board[cells[i].y][cells[i].x] = g->p.s;
-    }
-
-    g->score += clear_lines(g);
-    advance_shape(g);
-    return check_dead(g, &g->p);
 }
 
 score_t play_manual(game_t *g) {

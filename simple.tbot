@@ -1,0 +1,50 @@
+{
+    if (1) {
+    if (0) {
+    if (1) {
+
+    }
+    }
+    else if (0) {
+
+    } else if (1) {
+    if (0) {
+
+    } else {
+    call(drop)
+    }
+    }
+    } else {
+    call(drop)
+    }
+    if (score > 10000) {
+        call(drop)
+    } else if (mem[0] < 2) {
+        call(left)
+        call(left)
+        call(left)
+        call(left)
+        call(left)
+        mem[0] = mem[0] + 1
+        call(drop)
+    } else if (mem[1] < 2) {
+
+        mem[1] = mem[1] + 1
+        call(right)
+        call(drop)
+    } else {
+        call(rot_r)
+        call(right)
+        call(right)
+        call(right)
+        call(drop)
+        call(rot_r)
+        call(right)
+        call(right)
+        call(right)
+        call(right)
+        call(drop)
+        mem[0] = 0
+        mem[1] = 0
+    }
+}

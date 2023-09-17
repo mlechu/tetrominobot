@@ -1,12 +1,12 @@
-/* Infix notation calculator. */
-
 %{
-
-#include <math.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <strings.h>
+#include <stdlib.h>
+
+
 #include "game.h"
 
     typedef shape_t (gfunc_t) (game_t * g);
@@ -16,8 +16,7 @@
         gfunc_t *f;
     } fte_t;
 
-
-    fte_t functable[] = {
+    fte_t gfunc_table[] = {
         {"left", move_left},       {"right", move_right},
         {"down", move_down},       {"drop", move_drop},
         {"rot_l", move_rot_l},     {"rot_r", move_rot_r},
@@ -25,34 +24,91 @@
         {"die", move_drop} /* todo  */
     };
 
-    int game_funcs = sizeof(functable) / sizeof(fte_t);
+    int gfunc_n = sizeof(gfunc_table) / sizeof(fte_t);
 
-    int isfunc(char *name, uint64_t n) {
-        printf("\tgfunc name: %.*s\n", n, name);
-        for (int i = 0; i < game_funcs; i++) {
-            if (!strncmp(functable[i].name, name, n)) {
-                return 1;
-            }
-        }
-        return 0;
-    }
-
-
-    int call_func(char *name, uint64_t n, game_t *g) {
-        for (int i = 0; i < game_funcs; i++) {
-            if (!strncmp(functable[i].name, name, n)) {
-                return functable[i].f(g);
+    int gfunc_i(char *name, uint64_t n) {
+        for (int i = 0; i < gfunc_n; i++) {
+            if (!strncmp(gfunc_table[i].name, name, n)) {
+                return i;
             }
         }
         return -1;
     }
 
-    int yyparse (char *prog, uint64_t *ppos, game_t *g);
-    int yylex (char *prog, uint64_t *ppos, game_t *g);
-    void yyerror (char *prog, uint64_t *ppos, game_t *g, char *s);
+    int gfunc_call(int i, game_t *g) {
+        printf("\nCALLING %s\n", gfunc_table[i].name);
+        print_game(g);
+        return gfunc_table[i].f(g);
+    }
+
+    /* int gfunc_call(char *name, uint64_t n, game_t *g) { */
+    /*     for (int i = 0; i < gfunc_n; i++) { */
+    /*         if (!strncmp(gfunc_table[i].name, name, n)) { */
+    /*             return gfunc_table[i].f(g); */
+    /*         } */
+    /*     } */
+    /*     return -1; */
+    /* } */
+
+    int yyparse (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem);
+    int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem);
+    void yyerror (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem, char *s);
+
+    /* hack for conditional execution
+     * things are done to reduce stack overfilling. if we know
+     * we're in a false branch, we don't bother pushing new things.
+     */
+    char c_stack[512] = {0};
+    int c_sp = 0;
+
+    void c_push(int val) {
+        c_stack[c_sp] = val;
+        c_sp++;
+        if (c_sp > 512) {
+            puts("Too many nested contitionals");
+            exit(1);
+        }
+        printf("\npushing %d\n", val);
+        printf("\nCACTIVE STACK  [");
+        for (int i = 0; i < c_sp; i++) {
+            printf("%d ", c_stack[i]);
+        }
+        puts("]");
+
+    }
+
+    int c_pop() {
+        c_sp--;
+        if (c_sp < 0) {
+            printf("What?");
+            exit(1);
+        }
+        printf("\npopping %d\n", c_stack[c_sp]);
+        printf("\nCACTIVE STACK  [");
+        for (int i = 0; i < c_sp; i++) {
+            printf("%d ", c_stack[i]);
+        }
+        puts("]");
 
 
-    %}
+        return c_stack[c_sp];
+    }
+
+    /* Return whether or not the current branch is the active branch
+     * If yes, then we can have effects
+     *
+     * exclude=1 means do not count the top element
+     */
+    int c_active_branch(int exclude) {
+        int out = 0;
+        int top = c_sp - exclude;
+        for (int i = 0; i < top; i++) {
+            out += !!c_stack[i];
+        }
+        return out == top;
+    }
+
+        %}
 
 /* Highest line number = highest precedence */
 %define api.value.type {int32_t}
@@ -60,6 +116,7 @@
 %param {char *prog}
 %param {uint64_t *ppos}
 %param {game_t *g}
+%param {uint64_t *g_mem}
 
 /* TODO https://en.cppreference.com/w/c/language/operator_precedence */
 %token GFUNC
@@ -86,7 +143,6 @@
 %token NE "!="
 %token LOR "||"
 %token LAND "&&"
-
 %right '='
 %right '?' ':'
 %left LOR
@@ -112,39 +168,61 @@ input:
 ;
 
 tbot:
-'{' stmts '}' { printf("\t\ttbot\n");}
+'{' stmts '}' { printf("\n============================\ntbot done!\n");}
 ;
 
 fcall:
-"call" '(' GFUNC ')' { printf("\t\tfcall\n");}
+"call" '(' GFUNC ')' {
+    if (c_active_branch(0)) {
+        $$ = gfunc_call($3, g);
+    } else {
+        $$ = 0xbad;
+        printf("\nnot called: %s\n", gfunc_table[$3].name);
+    }
+}
 ;
 
 stmts:
 %empty
-| stmt semicolon.opt stmts { printf("\t\tstmts\n");}
+| stmt semicolon.opt stmts
 ;
 
 stmt:
-ifelse
-| mem '=' exp { printf("\t\tmem_assign\n"); }
+cond_if
+| MEM '[' exp ']' '=' exp {
+    if (c_active_branch(0)) {
+        g_mem[$3] = $6;
+        $$ = $6; /* maybe? */
+        printf("\nmem assigned\n");
+    } else {
+        $$ = 0xbad;
+        printf("\nmem not changed\n");
+    }
+}
 | fcall
 /* or macro call? */
 ;
 
-ifelse:
-IF '(' exp ')' '{' stmts '}'
-| IF '(' exp ')' '{' stmts '}' ELSE '{' stmts '}'
-| IF '(' exp ')' '{' stmts '}' ELSE ifelse
+cond_if:
+IF '(' exp ')'         { if (c_active_branch(0)) c_push($3); }
+'{' stmts '}'          { if (c_active_branch(1)) c_pop();
+                         if (c_active_branch(0)) c_push(!$3); }
+cond_else              { if (c_active_branch(1)) c_pop(); }
+/* | IF '(' exp ')' { c_push($3); printf("\tIFELSE EXP%d\n", $3); } '{' stmts '}' */
+/* ELSE '{' stmts '}' { c_pop(); c_push(!$3) } */
+/* { c_pop(); } */
+/* | IF '(' exp ')' { c_push($3); } '{' stmts '}' { c_pop(); } */
 ;
 
-/* writable vars */
-mem:
-MEM '[' exp ']' { printf("\t\tmem\n");}
+cond_else:
+%empty
+| ELSE '{' stmts '}'
+| ELSE cond_if
 ;
 
 exp:
 NUM
-| mem
+| MEM '[' exp ']'               { $$ = g_mem[$3]; }
 | BOARD '[' exp ']' '[' exp ']' { $$ = (int)g->board[$3][$6]; }
 | "piece_counter"               { $$ = (int)g->p.s; } // todo
 | "score"                       { $$ = (int)g->score; }
@@ -154,7 +232,7 @@ NUM
 | "ghost_y"                     { $$ = (int)g->p.s; } // todo
 | "piece_angle"                 { $$ = (int)g->p.angle; }
 | "hold_piece_type"             { $$ = (int)g->held; }
-| fcall
+| fcall                         { $$ = $1; }
 | exp "||" exp         { $$ = $1 || $3; }
 | exp "&&" exp         { $$ = $1 && $3; }
 | exp '|' exp          { $$ = $1 |  $3; }
@@ -184,12 +262,10 @@ semicolon.opt: | ';';
 
 %%
 
-void yyerror (char *prog, uint64_t *ppos, game_t *g, char *s) {
+void yyerror (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem, char *s) {
+    c_sp = 0;
     fprintf (stderr, "at pos %lld (\"%c\"): %s\n", *ppos, prog[*ppos], s);
 }
-
-#include <ctype.h>
-#include <stdlib.h>
 
 uint64_t eat_ws(char *p, uint64_t ppos) {
     while (p) {
@@ -255,12 +331,13 @@ tokdef_t alpha_toks[] = {
 int toksearch(tokdef_t *tlist, char *tok, uint64_t l) {
     for (int i = 0; tlist[i].s != NULL; i++) {
         if (l >= strlen(tlist[i].s) && !strncmp(tok, tlist[i].s, l)) {
-            printf("\tSTR %s\n", tlist[i].s);
+            printf(" %s ", tlist[i].s);
             return i;
         }
     }
     return -1;
 }
+
 /*
  * Eats whitespace, checks the token's first char,
  * finds token's end, and increments the ppos accordingly.
@@ -273,7 +350,7 @@ int toksearch(tokdef_t *tlist, char *tok, uint64_t l) {
  *
  * Treat anything else as EOF.
  */
-int yylex (char *prog, uint64_t *ppos, game_t *g) {
+int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem) {
     /* yydebug = 1; */
     char *prog_0 = prog;
 
@@ -292,7 +369,7 @@ int yylex (char *prog, uint64_t *ppos, game_t *g) {
             return punct_toks[t_i].yyshit;
         } else {
             /* one char */
-            printf("\t%c\n", prog[p]);
+            printf("%c", prog[p]);
             *ppos = p + 1;
             return prog[p];
         }
@@ -306,7 +383,7 @@ int yylex (char *prog, uint64_t *ppos, game_t *g) {
         if (sscanf(prog + p, "%d", &yylval) != 1) {
             abort();
         }
-        printf("\t%d\n", yylval);
+        printf("%d", yylval);
         *ppos = end;
         return NUM;
 
@@ -318,9 +395,11 @@ int yylex (char *prog, uint64_t *ppos, game_t *g) {
         *ppos = end;
 
         int at_i = toksearch(alpha_toks, prog + p, end - p);
+        int gf_i = gfunc_i(prog + p, end - p);
         if (at_i != -1) {
             return alpha_toks[at_i].yyshit;
-        } else if (isfunc(prog + p, end - p)) {
+        } else if (gf_i != -1) {
+            yylval = gf_i;
             return GFUNC;
         } else {
             return YYUNDEF;

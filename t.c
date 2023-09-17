@@ -11,9 +11,11 @@
 #define PROG_SIZE 0x1000
 // considering a global timeout (seconds) for infra reasons
 
+#define MEM_COUNT 0x100
+
 game_t global_game = {0};
 
-uint64_t bot_registers[16];
+uint64_t prog_mem[MEM_COUNT];
 
 move game_moves[] = {{"left", &move_left},       {"right", &move_right},
                      {"down", &move_down},       {"drop", &move_drop},
@@ -98,7 +100,13 @@ int main(int argc, char **argv) {
         fgets(user_in, PROG_SIZE, stdin);
         printf("program: %s\n", user_in);
         uint64_t ppos = 0;
-        yyparse((char *) &user_in, &ppos, g);
+        print_game(g);
+        /* this is horrible */
+        for (int i = 1; i < 100; i++) {
+            yyparse((char *)&user_in, &ppos, g, prog_mem);
+            ppos = 0;
+            /* print_game(g); */
+        }
 
         /* rule_t *rules = parse_prog(user_in); */
 
