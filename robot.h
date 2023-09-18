@@ -8,11 +8,13 @@
 #define PROG_SIZE 0x8000
 #define PIECE_TIMEOUT 0x100
 
+typedef int64_t mem_t;
+
 typedef struct {
     int debug;
     uint64_t ppos;
     char prog[PROG_SIZE];
-    uint64_t mem[MEM_COUNT];
+    mem_t mem[MEM_COUNT];
 } tbot_t;
 
 tbot_t * tbot_new(void);
@@ -27,6 +29,12 @@ typedef struct {
 
 int gfunc_i(char *name, uint64_t n);
 int gfunc_call(int i, game_t *g);
+
+/* checked array accesses */
+mem_t tbot_mem(tbot_t *t, int i);
+void tbot_mem_write(tbot_t *t, int i, mem_t val);
+int tbot_board(game_t *g, int y, int x);
+int tbot_preview(game_t *g, int i);
 
 
 #endif

@@ -68,12 +68,10 @@ todo add grammar
 * todo
 in descending order of importance
 
-- bounds check mem and board
 - rng sum
 - global timeout
 - piece timeout
 - guide
-- top of printout should say bot name or practice mode
 - print should only do so when debugging
 
 - macros? addressable by number, must be expr

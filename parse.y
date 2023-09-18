@@ -9,9 +9,9 @@
 #include "robot.h"
 #include "game.h"
 
-    int yyparse (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem);
-    int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem);
-    void yyerror (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem, char *s);
+    int yyparse (game_t *g, tbot_t *t);
+    int yylex (game_t *g, tbot_t *t);
+    void yyerror (game_t *g, tbot_t *t, char *s);
 
 
     /* hack for conditional execution
@@ -27,10 +27,11 @@
 /* Highest line number = highest precedence */
 %define api.value.type {int32_t}
 /* %define parse.trace */
-%param {char *prog}
-%param {uint64_t *ppos}
+/* %param {char *prog} */
+/* %param {uint64_t *ppos} */
 %param {game_t *g}
-%param {uint64_t *g_mem}
+%param {tbot_t *t}
+/* %param {uint64_t *g_mem} */
 
 %token GFUNC
 %token NUM
@@ -48,6 +49,7 @@
 %token HOLD_PIECE_TYPE "hold_piece_type"
 %token BOARD "board"
 %token PRINT "print"
+%token PREVIEW "preview"
 
 %token LSHIFT "<<"
 %token RSHIFT ">>"
@@ -61,9 +63,7 @@
 %right '?' ':'
 %left LOR
 %left LAND
-%left '|'
-%left '^'
-%left '&'
+%left '|' '^' '&'
 %left EE NE
 %left '>' GTE '<' LTE
 %left LSHIFT RSHIFT
@@ -103,7 +103,7 @@ stmt:
 cond_if
 | MEM '[' exp ']' '=' exp {
     if (cond_active) {
-        g_mem[$3] = $6;
+        tbot_mem_write(t, $3, $6);
         $$ = $6; /* maybe? */
         /* printf("mem assigned\n"); */
     } else {
@@ -132,8 +132,9 @@ cond_else:
 
 exp:
 NUM
-| MEM '[' exp ']'               { $$ = g_mem[$3]; }
-| BOARD '[' exp ']' '[' exp ']' { $$ = (int)g->board[$3][$6]; }
+| MEM '[' exp ']'               { $$ = tbot_mem(t, $3); }
+| BOARD '[' exp ']' '[' exp ']' { $$ = tbot_board(g, $3, $6); }
+| PREVIEW '[' exp ']'           { $$ = tbot_preview(g, $3); }
 | "piece_counter"               { $$ = (int)g->p.s; } // todo
 | "score"                       { $$ = (int)g->score; }
 | "piece_type"                  { $$ = (int)g->p.s; }
@@ -165,7 +166,10 @@ NUM
 | '-' exp  %prec NEG            { $$ = -$2;           }
 | '!' exp                       { $$ = !$2;           }
 | '(' exp ')'                   { $$ = $2;            }
-| exp '?' exp ':' exp           { $$ = ($1 ? $3 : $5);}
+| exp '?' { if (cond_active && !$1) { cond_active = 0; $$ = 1; } else { $$ = 0; } }
+  exp ':' { if ($3) { cond_active = 1; }
+            if (cond_active && !!$1) { cond_active = 0; $$ = 1; } }
+  exp     { if ($6) { cond_active = 1; } $$ = ($1 ? $4 : $7); }
 ;
 
 semicolon.opt:
@@ -174,8 +178,8 @@ semicolon.opt:
 
 %%
 
-void yyerror (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem, char *s) {
-    fprintf (stderr, "at pos %lld (\"%c\"): %s\n", *ppos, prog[*ppos], s);
+void yyerror (game_t *g, tbot_t *t, char *s) {
+    fprintf (stderr, "at pos %lld (\"%c\"): %s\n", t->ppos, t->prog[t->ppos], s);
 }
 
 uint64_t eat_ws(char *p, uint64_t ppos) {
@@ -234,6 +238,7 @@ tokdef_t alpha_toks[] = {
     {"mem", MEM},
     {"call", CALL},
     {"print", PRINT},
+    {"preview", PREVIEW},
     {0, 0}
 };
 
@@ -262,50 +267,49 @@ int toksearch(tokdef_t *tlist, char *tok, uint64_t l) {
  *
  * Treat anything else as EOF.
  */
-int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem) {
+int yylex (game_t *g, tbot_t *t) {
     /* yydebug = 1; */
-    char *prog_0 = prog;
 
-    *ppos = eat_ws(prog, *ppos);
-    uint64_t p = *ppos;
-    uint64_t max_end = til_end(prog, p);
+    t->ppos = eat_ws(t->prog, t->ppos);
+    uint64_t p = t->ppos;
+    uint64_t max_end = til_end(t->prog, p);
     /* int out = YYUNDEF; */
 
-    if (ispunct(prog[p])) {
-        int t_i = toksearch(punct_toks, prog + p, max_end - p);
+    if (ispunct(t->prog[p])) {
+        int t_i = toksearch(punct_toks, t->prog + p, max_end - p);
         if (t_i != -1) {
             /* long punct tok */
-            *ppos = p + strlen(punct_toks[t_i].s);
+            t->ppos = p + strlen(punct_toks[t_i].s);
             return punct_toks[t_i].yyshit;
         } else {
             /* one char */
-            /* printf("%c", prog[p]); */
-            *ppos = p + 1;
-            return prog[p];
+            /* printf("%c", t->prog[p]); */
+            t->ppos = p + 1;
+            return t->prog[p];
         }
 
-    } else if (isdigit(prog[p])) {
+    } else if (isdigit(t->prog[p])) {
         int end = p;
         /* todo: hex? */
-        while (isdigit(prog[end])) {
+        while (isdigit(t->prog[end])) {
             end++;
         }
-        if (sscanf(prog + p, "%d", &yylval) != 1) {
+        if (sscanf(t->prog + p, "%d", &yylval) != 1) {
             abort();
         }
         /* printf("%d", yylval); */
-        *ppos = end;
+        t->ppos = end;
         return NUM;
 
-    } else if (isalpha(prog[p]) || prog[p] == '_') {
+    } else if (isalpha(t->prog[p]) || t->prog[p] == '_') {
         int end = p;
-        while (isalnum(prog[end]) || prog[end] == '_') {
+        while (isalnum(t->prog[end]) || t->prog[end] == '_') {
             end++;
         }
-        *ppos = end;
+        t->ppos = end;
 
-        int at_i = toksearch(alpha_toks, prog + p, end - p);
-        int gf_i = gfunc_i(prog + p, end - p);
+        int at_i = toksearch(alpha_toks, t->prog + p, end - p);
+        int gf_i = gfunc_i(t->prog + p, end - p);
         if (at_i != -1) {
             return alpha_toks[at_i].yyshit;
         } else if (gf_i != -1) {
