@@ -125,6 +125,3 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-
-/* Just to make the libc leak work, we should be maintaining a list of pieces */
-/* what did i mean by this? */

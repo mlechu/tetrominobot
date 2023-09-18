@@ -36,77 +36,23 @@
     }
 
     int gfunc_call(int i, game_t *g) {
-        printf("\nCALLING %s\n", gfunc_table[i].name);
+        printf("CALLING %s\n", gfunc_table[i].name);
         print_game(g);
         return gfunc_table[i].f(g);
     }
-
-    /* int gfunc_call(char *name, uint64_t n, game_t *g) { */
-    /*     for (int i = 0; i < gfunc_n; i++) { */
-    /*         if (!strncmp(gfunc_table[i].name, name, n)) { */
-    /*             return gfunc_table[i].f(g); */
-    /*         } */
-    /*     } */
-    /*     return -1; */
-    /* } */
 
     int yyparse (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem);
     int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem);
     void yyerror (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem, char *s);
 
     /* hack for conditional execution
-     * things are done to reduce stack overfilling. if we know
-     * we're in a false branch, we don't bother pushing new things.
-     */
-    char c_stack[512] = {0};
-    int c_sp = 0;
-
-    void c_push(int val) {
-        c_stack[c_sp] = val;
-        c_sp++;
-        if (c_sp > 512) {
-            puts("Too many nested contitionals");
-            exit(1);
-        }
-        printf("\npushing %d\n", val);
-        printf("\nCACTIVE STACK  [");
-        for (int i = 0; i < c_sp; i++) {
-            printf("%d ", c_stack[i]);
-        }
-        puts("]");
-
-    }
-
-    int c_pop() {
-        c_sp--;
-        if (c_sp < 0) {
-            printf("What?");
-            exit(1);
-        }
-        printf("\npopping %d\n", c_stack[c_sp]);
-        printf("\nCACTIVE STACK  [");
-        for (int i = 0; i < c_sp; i++) {
-            printf("%d ", c_stack[i]);
-        }
-        puts("]");
-
-
-        return c_stack[c_sp];
-    }
-
-    /* Return whether or not the current branch is the active branch
-     * If yes, then we can have effects
      *
-     * exclude=1 means do not count the top element
+     * Whether or not the current block can have effects on the game
+     * When parsing, this will be set to 0 to disable a block.
+     * The block itself will keep track of whether it was zeroed (on the yacc stack)
      */
-    int c_active_branch(int exclude) {
-        int out = 0;
-        int top = c_sp - exclude;
-        for (int i = 0; i < top; i++) {
-            out += !!c_stack[i];
-        }
-        return out == top;
-    }
+    int cond_active = 1;
+
 
         %}
 
@@ -118,7 +64,6 @@
 %param {game_t *g}
 %param {uint64_t *g_mem}
 
-/* TODO https://en.cppreference.com/w/c/language/operator_precedence */
 %token GFUNC
 %token NUM
 %token IF "if"
@@ -158,8 +103,6 @@
 %precedence NEG
 %precedence '!' '~'
 
- /* %nterm exp */
-
 %% /* The grammar follows. */
 
 input:
@@ -168,16 +111,16 @@ input:
 ;
 
 tbot:
-'{' stmts '}' { printf("\n============================\ntbot done!\n");}
+'{' stmts '}' { printf("============================\ntbot done!\n");}
 ;
 
 fcall:
 "call" '(' GFUNC ')' {
-    if (c_active_branch(0)) {
+    if (cond_active) {
         $$ = gfunc_call($3, g);
     } else {
         $$ = 0xbad;
-        printf("\nnot called: %s\n", gfunc_table[$3].name);
+        printf("not called: %s\n", gfunc_table[$3].name);
     }
 }
 ;
@@ -190,28 +133,25 @@ stmts:
 stmt:
 cond_if
 | MEM '[' exp ']' '=' exp {
-    if (c_active_branch(0)) {
+    if (cond_active) {
         g_mem[$3] = $6;
         $$ = $6; /* maybe? */
-        printf("\nmem assigned\n");
+        printf("mem assigned\n");
     } else {
         $$ = 0xbad;
-        printf("\nmem not changed\n");
+        printf("mem not changed\n");
     }
 }
 | fcall
 /* or macro call? */
 ;
 
+/* value of the midrule action = 1 if it set cond_active to 0 and needs to reset it after */
 cond_if:
-IF '(' exp ')'         { if (c_active_branch(0)) c_push($3); }
-'{' stmts '}'          { if (c_active_branch(1)) c_pop();
-                         if (c_active_branch(0)) c_push(!$3); }
-cond_else              { if (c_active_branch(1)) c_pop(); }
-/* | IF '(' exp ')' { c_push($3); printf("\tIFELSE EXP%d\n", $3); } '{' stmts '}' */
-/* ELSE '{' stmts '}' { c_pop(); c_push(!$3) } */
-/* { c_pop(); } */
-/* | IF '(' exp ')' { c_push($3); } '{' stmts '}' { c_pop(); } */
+IF '(' exp ')'         { if (cond_active && !$3) { cond_active = 0; $$ = 1; } else { $$ = 0; } }
+'{' stmts '}'          { if ($5) { cond_active = 1; }
+                         if (cond_active && !!$3) { cond_active = 0; $$ = 1; } else { $$ = 0; } }
+cond_else              { if ($9) { cond_active = 1; } }
 ;
 
 cond_else:
@@ -263,7 +203,6 @@ semicolon.opt: | ';';
 %%
 
 void yyerror (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem, char *s) {
-    c_sp = 0;
     fprintf (stderr, "at pos %lld (\"%c\"): %s\n", *ppos, prog[*ppos], s);
 }
 
@@ -331,7 +270,7 @@ tokdef_t alpha_toks[] = {
 int toksearch(tokdef_t *tlist, char *tok, uint64_t l) {
     for (int i = 0; tlist[i].s != NULL; i++) {
         if (l >= strlen(tlist[i].s) && !strncmp(tok, tlist[i].s, l)) {
-            printf(" %s ", tlist[i].s);
+            /* printf(" %s ", tlist[i].s); */
             return i;
         }
     }
@@ -356,8 +295,6 @@ int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem) {
 
     *ppos = eat_ws(prog, *ppos);
     uint64_t p = *ppos;
-    /* printf("PPOS \"%d\"\n", p); */
-    /* printf("TOKEN START \"%x\"\n", prog[p]); */
     uint64_t max_end = til_end(prog, p);
     /* int out = YYUNDEF; */
 
@@ -369,7 +306,7 @@ int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem) {
             return punct_toks[t_i].yyshit;
         } else {
             /* one char */
-            printf("%c", prog[p]);
+            /* printf("%c", prog[p]); */
             *ppos = p + 1;
             return prog[p];
         }
@@ -383,7 +320,7 @@ int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem) {
         if (sscanf(prog + p, "%d", &yylval) != 1) {
             abort();
         }
-        printf("%d", yylval);
+        /* printf("%d", yylval); */
         *ppos = end;
         return NUM;
 
@@ -408,8 +345,3 @@ int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem) {
         return YYEOF;
     }
 }
-
-/* int main (int argc, char **argv) { */
-/*     char *prog = "if (1) { move_drop() }"; */
-/*     return yyparse (prog, NULL); */
-/* } */

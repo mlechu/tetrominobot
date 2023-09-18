@@ -1,50 +1,90 @@
 {
     if (1) {
+        call(right);
+    } else {
+        call(right);
+    }
+
+    call(left)
+
     if (0) {
+        call(right);
+    } else if (2 - 2) {
+        call(right);
+    } else if (3) {
+        call(right);
+    } else {
+        call(right);
+    }
+
+    call(left)
+
+    if (0) {
+        call(right);
+    } else if (2 - 2) {
+        call(right);
+    } else if (3 - 3) {
+        call(right);
+    } else {
+        call(right);
+    }
+
+    call(rot_l);
+
     if (1) {
+        if (0) {
+            if (1) {
+                if (1) {
+                    if (2) {
+                        if (3) {
+                            call(die);
+                        } else {
+                            call(die);
+                        }
 
-    }
-    }
-    else if (0) {
+                        if (4) {
+                            call(die);
+                        }
+                    }
+                }
+            }
+        } else if (0) {
 
-    } else if (1) {
-    if (0) {
+        } else if (1) {
+            if (0) {
 
+            } else {
+                call(drop)
+            }
+        }
     } else {
-    call(drop)
-    }
-    }
-    } else {
-    call(drop)
+        call(drop);
     }
     if (score > 10000) {
         call(drop)
     } else if (mem[0] < 2) {
-        call(left)
-        call(left)
-        call(left)
-        call(left)
-        call(left)
-        mem[0] = mem[0] + 1
-        call(drop)
+        call(left);
+        call(left);
+        call(left);
+        call(left);
+        call(left);
+        mem[0] = mem[0] + 1 call(drop);
     } else if (mem[1] < 2) {
-
-        mem[1] = mem[1] + 1
-        call(right)
-        call(drop)
+        mem[1] = mem[1] + 1;
+        call(right);
+        call(drop);
     } else {
-        call(rot_r)
-        call(right)
-        call(right)
-        call(right)
-        call(drop)
-        call(rot_r)
-        call(right)
-        call(right)
-        call(right)
-        call(right)
-        call(drop)
-        mem[0] = 0
-        mem[1] = 0
+        call(rot_r);
+        call(right);
+        call(right);
+        call(right);
+        call(drop);
+        call(rot_r);
+        call(right);
+        call(right);
+        call(right);
+        call(right);
+        call(drop);
+        mem[0] = 0 mem[1] = 0;
     }
 }

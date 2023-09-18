@@ -201,7 +201,7 @@ shape_t check_dead(game_t *g, const piece_t *const p) {
     for (int i = 0; i < 4; i++) {
         shape_t on_board = g->board[cells[i].y][cells[i].x];
         if (on_board != P_NONE) {
-            printf("check_dead: %x\n", on_board);
+            /* printf("check_dead: %x\n", on_board); */
             return on_board;
         }
     }
@@ -222,7 +222,7 @@ void print_game(game_t *g) {
     piece_t ghost = g->p;
     piece_t new_ghost = ghost;
     new_ghost.pos.y++;
-    printf("GHOST: "); /* annotate check_dead */
+    /* printf("GHOST: "); /\* annotate check_dead *\/ */
     while (1) {
         pos_t cells[4];
         get_cells(new_ghost, cells);

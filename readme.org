@@ -72,3 +72,4 @@ VAR = score | pos(x, y) | number
 - programmer's guide :)
   - excellent debug prints :)
   - probably not functions, but maybe macros
+- top of printout should say bot name or practice mode
