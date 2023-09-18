@@ -1,71 +1,73 @@
 * tetrominobot
-"you can put AI engineer in your twitter bio after this one"
-
-provided to the player: all filled boxes, score, tick
-
-what does the player write? a spec file? c/asm too pwnable
-
-7-bag may help. There should probably be a button to halt the piece midair
+You can call yourself an AI engineer after this one
 
 ** details
-The program allows the player to create little tetris bots, where a bot is just a decision tree(??)
+The program allows the player to create little tetris bots. minus pwn, the intention would be to get
+the highest-scoring bot. This would make for a fun misc or koth chall if there's time.
+
+The player gets:
+1. a binary
+2. a player manual
+3. an example program that clears a few lines and dies
+
+** Language
+The language is meant to be simple; basically a block of C-like code that is run in a loop. In this
+code, you have access to:
+- a set of predefined variables
+- a set of predefined game functions
+- if statements
+- a small chunk of memory for counters or whatever the player wants
+- maybe macros if I have the time
+
+There won't be loops beyond the outer loop, but workarounds using counters are possible.
+
+todo add grammar
 
 ** exploit
 
-leak is probably more fun than the call
+*** bug 1: libc?? leak
+- Like in the real game, pieces existing above the visible board does not kill you
+  - you die when a new piece can't spawn (usually in the top-middle of the board)
+- An address or some other interesting data is stored above the board in memory
+  - libc? address of game memory for a ropchain?
+- Piece movement functions return 0 for success or a number describing what the piece ran into
+- Like in the real game, there is no "move up" function, but if you are rotating a piece close to
+  some obstacles, there is a bunch of "kick" positions that are tried, and many of these positions
+  bump the rotated piece up
 
-*** bug 1 (libc leak)
-- pieces existing above the visible board is OK, as long as they're not yet placed.
-- The board should be on the heap or maybe right after the GOT
-- Dumping the state of the board yields a list of
-  (x,y): colour
-  where each color is piece ORed with the board rather than each board spot
-- Leak a libc address
+** potential bugs (not yet implemented)
 
-**** note
-- Maybe no manual input and no dump_state
-- Instead, read the addr value by setting a register to the color of the current piece, which ends
-  up reading the above data.
-- Maybe let players set piece colors on their own
+*** t-spin bug
+- the score delta when clearing n lines is array[n] where array is 4 constant ints stored on the
+  stack
+- t-spins generally give a player more points than the raw amount of lines cleared
+  - this is when the piece dropped was a T and the T is "under" some existing pieces
+- it is possible to clear 1, 2, or 3 lines with a t-spin
+- have the can't-move-T-up check set n=3 (maybe 4? maybe long ints?). Then have the line clearing
+  check increment it with additional lines cleared
+- score will increment by whatever interesting data lies after the array. player can access the
+  score in their bot.
 
-*** bug 2: arbitrary call
+*** arbitrary call
 - the ruleset maker treats "function calls" as a table lookup
 - TODO player can somehow sneak arbitrary call past the decision tree parser
 
 *** optional bug: srand (piece generator) control
-- hash of the program (add all bytes)
-- easier idea: use ((pieces) + the number of moves before the most recent piece was dropped) mod 7
-
-** implementation
-- player spec file -> list of rules
-- game representation
-- example spec files
-
-*** game state
-- list of pieces where at least one cell is present on the board
-- score
-- current movable piece
-- piece timeout value
+- Intentionally lazy rng so the player can get deterministic pieces with a little effort
+  - maybe take the hash of the program (add all bytes mod 256? xor all bytes?)
+  - easier idea (for the player): use ((pieces dropped) + the number of moves before the most recent
+    piece was dropped) mod 7
+- I'll use this bug for now to try and make the intended solution more attractive than any
+  unintended ones.  however, it would make for an interesting challenge to actually use random
+  pieces.
 
 ** flag
 - maple{tell the marketing department that we use 99% fewer CPU cycles than competing apps}
-
-** player manual
-commit() may be used before a drop() in this simulator.
-
-*** spec
-RESULT := IFELSE | MOVE
-MOVE = input() | left() | right() | rotate_left() | down() | drop() | commit()
-COND =
-VAR = score | pos(x, y) | number
-
 
 ** nonsense
 - undo(), save history for more data thrown everywhere
 - if any, the scoreboard-accessing program should probably be in racket
   - should be a limit of 100 moves per piece, else bail
-  - in() disabled?
-  - or maybe just valid_game = false upon in() or undo()
   - actual random pieces
 - color mode
   - color mode that makes address leak harder due to extra bits being

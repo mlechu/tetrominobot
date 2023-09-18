@@ -17,10 +17,13 @@ game_t global_game = {0};
 
 uint64_t prog_mem[MEM_COUNT];
 
-move game_moves[] = {{"left", &move_left},       {"right", &move_right},
-                     {"down", &move_down},       {"drop", &move_drop},
-                     {"rot_l", &move_rot_l},     {"rot_r", &move_rot_r},
-                     {"rot_180", &move_rot_180}, {"hold", &move_hold}};
+/* move game_moves[] = { */
+/*     {"left", &move_left},   {"right", &move_right},     {"down", &move_down},
+ */
+/*     {"sdrop", &move_sdrop}, {"drop", &move_drop},       {"rot_l",
+ * &move_rot_l}, */
+/*     {"rot_r", &move_rot_r}, {"rot_180", &move_rot_180}, {"hold",
+ * &move_hold}}; */
 
 /* typedef struct { */
 /*     uint64_t name; */
@@ -101,20 +104,17 @@ int main(int argc, char **argv) {
         printf("program: %s\n", user_in);
         uint64_t ppos = 0;
         print_game(g);
+
         /* this is horrible */
-        for (int i = 1; i < 100; i++) {
-            yyparse((char *)&user_in, &ppos, g, prog_mem);
+        for (int i = 1; i < 2000; i++) {
             ppos = 0;
+            yyparse((char *)&user_in, &ppos, g, prog_mem);
+            if (check_dead(g, &g->p)) {
+                break;
+            }
             /* print_game(g); */
         }
-
-        /* rule_t *rules = parse_prog(user_in); */
-
-        do {
-            done = 1;
-            /* done = add_piece(g, rules, 0); */
-        } while (!done);
-
+        print_game(g);
         printf("Score: %llu\n", g->score);
         /* puts("Retry? (y/N)"); */
         /* printf("> "); */

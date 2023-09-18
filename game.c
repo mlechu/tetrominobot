@@ -180,6 +180,7 @@ piece_t new_piece(int s) {
 }
 
 game_t *new_game(game_t *g) {
+    srand(time(NULL));
     if (g == NULL) {
         g = calloc(sizeof(game_t), 1);
     }
@@ -208,6 +209,27 @@ shape_t check_dead(game_t *g, const piece_t *const p) {
     return P_NONE;
 }
 
+/* y-position of the ghost piece */
+int ghost_pos(game_t *g) {
+    piece_t ghost = g->p;
+    piece_t test_ghost = ghost;
+    test_ghost.pos.y++;
+    while (1) {
+        pos_t cells[4];
+        get_cells(test_ghost, cells);
+        int max_y = max4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
+        if (max_y >= BOARD_H) {
+            break;
+        }
+        if (check_dead(g, &test_ghost)) {
+            break;
+        }
+        ghost.pos.y++;
+        test_ghost.pos.y++;
+    }
+    return ghost.pos.y;
+}
+
 void print_game(game_t *g) {
     clear_term();
     board_t outb = {0};
@@ -220,22 +242,7 @@ void print_game(game_t *g) {
 
     /* ghost piece */
     piece_t ghost = g->p;
-    piece_t new_ghost = ghost;
-    new_ghost.pos.y++;
-    /* printf("GHOST: "); /\* annotate check_dead *\/ */
-    while (1) {
-        pos_t cells[4];
-        get_cells(new_ghost, cells);
-        int max_y = max4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
-        if (max_y >= BOARD_H) {
-            break;
-        }
-        if (check_dead(g, &new_ghost)) {
-            break;
-        }
-        ghost.pos.y++;
-        new_ghost.pos.y++;
-    }
+    ghost.pos.y = ghost_pos(g);
     pos_t ghost_cells[4];
     get_cells(ghost, ghost_cells);
     for (int i = 0; i < 4; i++) {
@@ -408,10 +415,32 @@ shape_t move_down(game_t *g) {
     g->p = new_p;
     return 0;
 }
-shape_t move_drop_no_commit(game_t *g) {
+
+shape_t move_sdrop(game_t *g) {
     while (!move_down(g))
         ;
     return move_down(g);
+}
+
+/* For hard drop */
+shape_t move_commit(game_t *g) {
+    int dead = check_dead(g, &g->p);
+    if (dead)
+        return dead;
+    pos_t cells[4];
+    get_cells(g->p, cells);
+    for (int i = 0; i < 4; i++) {
+        g->board[cells[i].y][cells[i].x] = g->p.s;
+    }
+
+    g->score += clear_lines(g);
+    advance_shape(g);
+    return check_dead(g, &g->p);
+}
+
+shape_t move_drop(game_t *g) {
+    move_sdrop(g);
+    return move_commit(g);
 }
 
 /* Rotate a test piece and try each of the five coordinates in the kick list
@@ -470,9 +499,11 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
 shape_t move_rot_r(game_t *g) {
     return _move_rot(g, g->p.angle, (g->p.angle + 1) & 3);
 }
+
 shape_t move_rot_180(game_t *g) {
     return _move_rot(g, g->p.angle, (g->p.angle + 2) & 3);
 }
+
 shape_t move_rot_l(game_t *g) {
     return _move_rot(g, g->p.angle, (g->p.angle - 1) & 3);
 }
@@ -497,28 +528,6 @@ shape_t move_hold(game_t *g) {
         g->p = new_p;
     }
     return 0;
-}
-
-/* To be called after drop */
-shape_t move_commit(game_t *g) {
-    int dead = check_dead(g, &g->p);
-    if (dead)
-        return dead;
-    pos_t cells[4];
-    get_cells(g->p, cells);
-    for (int i = 0; i < 4; i++) {
-        g->board[cells[i].y][cells[i].x] = g->p.s;
-    }
-
-    g->score += clear_lines(g);
-    advance_shape(g);
-    return check_dead(g, &g->p);
-}
-
-/* Player-visible drop function */
-shape_t move_drop(game_t *g) {
-    move_drop_no_commit(g);
-    return move_commit(g);
 }
 
 /* just for testing the game */

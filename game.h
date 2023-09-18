@@ -34,6 +34,7 @@ typedef struct {
     int colour;
     int gcolour;
     uint8_t angle;
+    uint16_t counter;
 } piece_t;
 
 typedef shape_t board_t[BOARD_H][BOARD_W];
@@ -58,12 +59,14 @@ void get_cells(piece_t p, pos_t out[4]);
 piece_t new_piece(int s);
 game_t *new_game(game_t *g);
 shape_t check_dead(game_t *g, const piece_t *const p);
+int ghost_pos(game_t *g);
 void print_game(game_t *g);
 int clear_lines(game_t *g);
 int advance_shape(game_t *g);
 shape_t move_left(game_t *g);
 shape_t move_right(game_t *g);
 shape_t move_down(game_t *g);
+shape_t move_sdrop(game_t *g);
 shape_t move_drop(game_t *g);
 shape_t move_rot_r(game_t *g);
 shape_t move_rot_180(game_t *g);

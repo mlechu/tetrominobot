@@ -21,7 +21,7 @@
         {"down", move_down},       {"drop", move_drop},
         {"rot_l", move_rot_l},     {"rot_r", move_rot_r},
         {"rot_180", move_rot_180}, {"hold", move_hold},
-        {"die", move_drop} /* todo  */
+        {"sdrop", move_sdrop} /* todo  */
     };
 
     int gfunc_n = sizeof(gfunc_table) / sizeof(fte_t);
@@ -53,12 +53,11 @@
      */
     int cond_active = 1;
 
-
         %}
 
 /* Highest line number = highest precedence */
 %define api.value.type {int32_t}
-%define parse.trace
+/* %define parse.trace */
 %param {char *prog}
 %param {uint64_t *ppos}
 %param {game_t *g}
@@ -79,6 +78,7 @@
 %token PIECE_ANGLE "piece_angle"
 %token HOLD_PIECE_TYPE "hold_piece_type"
 %token BOARD "board"
+%token PRINT "print"
 
 %token LSHIFT "<<"
 %token RSHIFT ">>"
@@ -143,6 +143,7 @@ cond_if
     }
 }
 | fcall
+| PRINT '(' exp ')' { printf("%d\n", $3); }
 /* or macro call? */
 ;
 
@@ -169,7 +170,7 @@ NUM
 | "piece_type"                  { $$ = (int)g->p.s; }
 | "piece_x"                     { $$ = (int)g->p.pos.x; }
 | "piece_y"                     { $$ = (int)g->p.pos.y; }
-| "ghost_y"                     { $$ = (int)g->p.s; } // todo
+| "ghost_y"                     { $$ = ghost_pos(g); } // todo
 | "piece_angle"                 { $$ = (int)g->p.angle; }
 | "hold_piece_type"             { $$ = (int)g->held; }
 | fcall                         { $$ = $1; }
@@ -261,6 +262,7 @@ tokdef_t alpha_toks[] = {
     {"board", BOARD},
     {"mem", MEM},
     {"call", CALL},
+    {"print", PRINT},
     {0, 0}
 };
 

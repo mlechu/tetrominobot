@@ -1,90 +1,31 @@
 {
-    if (1) {
-        call(right);
-    } else {
-        call(right);
-    }
-
-    call(left)
-
-    if (0) {
-        call(right);
-    } else if (2 - 2) {
-        call(right);
-    } else if (3) {
-        call(right);
-    } else {
-        call(right);
-    }
-
-    call(left)
-
-    if (0) {
-        call(right);
-    } else if (2 - 2) {
-        call(right);
-    } else if (3 - 3) {
-        call(right);
-    } else {
-        call(right);
-    }
-
-    call(rot_l);
-
-    if (1) {
-        if (0) {
-            if (1) {
-                if (1) {
-                    if (2) {
-                        if (3) {
-                            call(die);
-                        } else {
-                            call(die);
-                        }
-
-                        if (4) {
-                            call(die);
-                        }
-                    }
-                }
-            }
-        } else if (0) {
-
-        } else if (1) {
-            if (0) {
-
-            } else {
-                call(drop)
-            }
+    if (!mem[5]) {
+        call(rot_l);
+        mem[5] = 1;
+    } else if (!mem[0]) {
+        mem[0] = call(left);
+    } else if (!mem[1]) {
+        if (ghost_y > mem[10]) {
+            mem[10] = ghost_y;
+            mem[11] = mem[2];
         }
+        mem[2] = mem[2] + 1;
+        mem[1] = call(right);
+    } else if (!mem[3]) {
+        mem[0] = 0;
+        mem[3] = 1;
+    } else if (mem[11]) {
+        mem[11] = mem[11] - 1;
+        call(right);
     } else {
         call(drop);
-    }
-    if (score > 10000) {
-        call(drop)
-    } else if (mem[0] < 2) {
-        call(left);
-        call(left);
-        call(left);
-        call(left);
-        call(left);
-        mem[0] = mem[0] + 1 call(drop);
-    } else if (mem[1] < 2) {
-        mem[1] = mem[1] + 1;
-        call(right);
-        call(drop);
-    } else {
-        call(rot_r);
-        call(right);
-        call(right);
-        call(right);
-        call(drop);
-        call(rot_r);
-        call(right);
-        call(right);
-        call(right);
-        call(right);
-        call(drop);
-        mem[0] = 0 mem[1] = 0;
+        mem[0] = 0;
+        mem[1] = 0;
+        mem[2] = 0;
+        mem[3] = 0;
+        mem[4] = 0;
+        mem[5] = 0;
+        mem[10] = 0;
+        mem[11] = 0;
     }
 }
