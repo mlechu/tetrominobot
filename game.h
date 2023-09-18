@@ -4,9 +4,8 @@
 #include <stdint.h>
 
 #define BOARD_W 10
-#define BOARD_H 21
+#define BOARD_H 22
 
-#define PIECE_TIMEOUT 50
 #define PIECE_PREVIEWS 5
 
 typedef enum {
@@ -47,6 +46,8 @@ typedef struct {
     /* since no gravity, no point in limiting # of holds per piece */
     shape_t held;
     shape_t preview[PIECE_PREVIEWS];
+    /* whether or not player is playing by hand */
+    int practice;
 } game_t;
 
 typedef struct {
@@ -54,7 +55,7 @@ typedef struct {
     shape_t (*f)(game_t *g);
 } move;
 
-shape_t rand_shape();
+shape_t rand_shape(void);
 void get_cells(piece_t p, pos_t out[4]);
 piece_t new_piece(int s);
 game_t *new_game(game_t *g);

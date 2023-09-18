@@ -6,44 +6,13 @@
 #include <strings.h>
 #include <stdlib.h>
 
-
+#include "robot.h"
 #include "game.h"
-
-    typedef shape_t (gfunc_t) (game_t * g);
-
-    typedef struct {
-        char *name;
-        gfunc_t *f;
-    } fte_t;
-
-    fte_t gfunc_table[] = {
-        {"left", move_left},       {"right", move_right},
-        {"down", move_down},       {"drop", move_drop},
-        {"rot_l", move_rot_l},     {"rot_r", move_rot_r},
-        {"rot_180", move_rot_180}, {"hold", move_hold},
-        {"sdrop", move_sdrop} /* todo  */
-    };
-
-    int gfunc_n = sizeof(gfunc_table) / sizeof(fte_t);
-
-    int gfunc_i(char *name, uint64_t n) {
-        for (int i = 0; i < gfunc_n; i++) {
-            if (!strncmp(gfunc_table[i].name, name, n)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    int gfunc_call(int i, game_t *g) {
-        printf("CALLING %s\n", gfunc_table[i].name);
-        print_game(g);
-        return gfunc_table[i].f(g);
-    }
 
     int yyparse (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem);
     int yylex (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem);
     void yyerror (char *prog, uint64_t *ppos, game_t *g, uint64_t *g_mem, char *s);
+
 
     /* hack for conditional execution
      *
@@ -53,7 +22,7 @@
      */
     int cond_active = 1;
 
-        %}
+    %}
 
 /* Highest line number = highest precedence */
 %define api.value.type {int32_t}
@@ -111,7 +80,7 @@ input:
 ;
 
 tbot:
-'{' stmts '}' { printf("============================\ntbot done!\n");}
+'{' stmts '}' { /* printf("============================\ntbot done!\n"); */}
 ;
 
 fcall:
@@ -120,7 +89,7 @@ fcall:
         $$ = gfunc_call($3, g);
     } else {
         $$ = 0xbad;
-        printf("not called: %s\n", gfunc_table[$3].name);
+        /* printf("not called: %s\n", gfunc_table[$3].name); */
     }
 }
 ;
@@ -136,10 +105,10 @@ cond_if
     if (cond_active) {
         g_mem[$3] = $6;
         $$ = $6; /* maybe? */
-        printf("mem assigned\n");
+        /* printf("mem assigned\n"); */
     } else {
         $$ = 0xbad;
-        printf("mem not changed\n");
+        /* printf("mem not changed\n"); */
     }
 }
 | fcall
@@ -151,7 +120,7 @@ cond_if
 cond_if:
 IF '(' exp ')'         { if (cond_active && !$3) { cond_active = 0; $$ = 1; } else { $$ = 0; } }
 '{' stmts '}'          { if ($5) { cond_active = 1; }
-                         if (cond_active && !!$3) { cond_active = 0; $$ = 1; } else { $$ = 0; } }
+    if (cond_active && !!$3) { cond_active = 0; $$ = 1; } else { $$ = 0; } }
 cond_else              { if ($9) { cond_active = 1; } }
 ;
 
@@ -170,36 +139,38 @@ NUM
 | "piece_type"                  { $$ = (int)g->p.s; }
 | "piece_x"                     { $$ = (int)g->p.pos.x; }
 | "piece_y"                     { $$ = (int)g->p.pos.y; }
-| "ghost_y"                     { $$ = ghost_pos(g); } // todo
+| "ghost_y"                     { $$ = ghost_pos(g); }
 | "piece_angle"                 { $$ = (int)g->p.angle; }
 | "hold_piece_type"             { $$ = (int)g->held; }
 | fcall                         { $$ = $1; }
-| exp "||" exp         { $$ = $1 || $3; }
-| exp "&&" exp         { $$ = $1 && $3; }
-| exp '|' exp          { $$ = $1 |  $3; }
-| exp '^' exp          { $$ = $1 ^  $3; }
-| exp '&' exp          { $$ = $1 &  $3; }
-| exp "==" exp         { $$ = $1 == $3; }
-| exp "!=" exp         { $$ = $1 != $3; }
-| exp '>' exp          { $$ = $1 >  $3; }
-| exp ">=" exp         { $$ = $1 >= $3; }
-| exp '<' exp          { $$ = $1 <  $3; }
-| exp "<=" exp         { $$ = $1 <= $3; }
-| exp "<<" exp         { $$ = $1 << $3; }
-| exp ">>" exp         { $$ = $1 >> $3; }
-| exp '+' exp          { $$ = $1 +  $3; }
-| exp '-' exp          { $$ = $1 -  $3; }
-| exp '*' exp          { $$ = $1 *  $3; }
-| exp '/' exp          { $$ = $1 /  $3; }
-| exp '%' exp          { $$ = $1 %  $3; }
-| '~' exp              { $$ = ~$2;           }
-| '-' exp  %prec NEG   { $$ = -$2;           }
-| '!' exp              { $$ = !$2;           }
-| '(' exp ')'          { $$ = $2;            }
-| exp '?' exp ':' exp  { $$ = ($1 ? $3 : $5);}
+| exp "||" exp                  { $$ = $1 || $3; }
+| exp "&&" exp                  { $$ = $1 && $3; }
+| exp '|' exp                   { $$ = $1 |  $3; }
+| exp '^' exp                   { $$ = $1 ^  $3; }
+| exp '&' exp                   { $$ = $1 &  $3; }
+| exp "==" exp                  { $$ = $1 == $3; }
+| exp "!=" exp                  { $$ = $1 != $3; }
+| exp '>' exp                   { $$ = $1 >  $3; }
+| exp ">=" exp                  { $$ = $1 >= $3; }
+| exp '<' exp                   { $$ = $1 <  $3; }
+| exp "<=" exp                  { $$ = $1 <= $3; }
+| exp "<<" exp                  { $$ = $1 << $3; }
+| exp ">>" exp                  { $$ = $1 >> $3; }
+| exp '+' exp                   { $$ = $1 +  $3; }
+| exp '-' exp                   { $$ = $1 -  $3; }
+| exp '*' exp                   { $$ = $1 *  $3; }
+| exp '/' exp                   { $$ = $1 /  $3; }
+| exp '%' exp                   { $$ = $1 %  $3; }
+| '~' exp                       { $$ = ~$2;           }
+| '-' exp  %prec NEG            { $$ = -$2;           }
+| '!' exp                       { $$ = !$2;           }
+| '(' exp ')'                   { $$ = $2;            }
+| exp '?' exp ':' exp           { $$ = ($1 ? $3 : $5);}
 ;
 
-semicolon.opt: | ';';
+semicolon.opt:
+%empty
+| ';';
 
 %%
 

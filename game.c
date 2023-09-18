@@ -293,9 +293,17 @@ void print_game(game_t *g) {
 
     /* print */
     printf("\n");
-    printf("+------------+--------------------+------------+\n");
-    printf("| Hold:      |  *Practice mode*   | Next:      |\n");
-    printf("+------------+--------------------+------------+\n");
+    if (g->practice) {
+        printf("+------------+--------------------+------------+\n");
+        printf("| Hold:      |  *Practice mode*   | Next:      |\n");
+        printf("+------------+--------------------+------------+\n");
+
+    } else {
+        printf("+------------+--------------------+------------+\n");
+        printf("| Hold:      |                    | Next:      |\n");
+        printf("+------------+--------------------+------------+\n");
+    }
+
     for (int y = 0; y < BOARD_H; y++) {
         printf("|");
         for (int x = 0; x < 6; x++) {
@@ -314,9 +322,11 @@ void print_game(game_t *g) {
         printf(TERM_ENDCOLOUR);
         printf("|\n");
     }
-    printf("+------------+--------------------+------------+\n");
-    printf("|            | wasd  SPC   . - =  |            |\n");
-    printf("+------------+--------------------+------------+\n");
+        printf("+------------+--------------------+------------+\n");
+    if (g->practice) {
+        printf("|            | wasd  SPC   . - =  |            |\n");
+        printf("+------------+--------------------+------------+\n");
+    }
     fflush(stdout);
 }
 
@@ -572,6 +582,7 @@ score_t play_manual(game_t *g) {
     srand(time(NULL));
     int done = 0;
     g = new_game(g);
+    g->practice = 1;
     do {
         done = add_piece_manual(g);
     } while (!done);

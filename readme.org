@@ -64,14 +64,17 @@ todo add grammar
 ** flag
 - maple{tell the marketing department that we use 99% fewer CPU cycles than competing apps}
 
-** nonsense
-- undo(), save history for more data thrown everywhere
-- if any, the scoreboard-accessing program should probably be in racket
-  - should be a limit of 100 moves per piece, else bail
-  - actual random pieces
-- color mode
-  - color mode that makes address leak harder due to extra bits being
-- programmer's guide :)
-  - excellent debug prints :)
-  - probably not functions, but maybe macros
+
+* todo
+in descending order of importance
+
+- bounds check mem and board
+- rng sum
+- global timeout
+- piece timeout
+- guide
 - top of printout should say bot name or practice mode
+- print should only do so when debugging
+
+- macros? addressable by number, must be expr
+- bot name?
