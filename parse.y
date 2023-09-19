@@ -25,13 +25,10 @@
     %}
 
 /* Highest line number = highest precedence */
-%define api.value.type {int32_t}
+%define api.value.type {int64_t}
 /* %define parse.trace */
-/* %param {char *prog} */
-/* %param {uint64_t *ppos} */
 %param {game_t *g}
 %param {tbot_t *t}
-/* %param {uint64_t *g_mem} */
 
 %token GFUNC
 %token NUM
@@ -87,6 +84,7 @@ fcall:
 "call" '(' GFUNC ')' {
     if (cond_active) {
         $$ = gfunc_call($3, g);
+        /* printf("\nthe: %d\n", $$); */
     } else {
         $$ = 0xbad;
         /* printf("not called: %s\n", gfunc_table[$3].name); */
@@ -104,6 +102,7 @@ cond_if
 | MEM '[' exp ']' '=' exp {
     if (cond_active) {
         tbot_mem_write(t, $3, $6);
+        /* printf("\nthe_mem[%d]: %d\n", $3, $6); */
         $$ = $6; /* maybe? */
         /* printf("mem assigned\n"); */
     } else {
@@ -112,7 +111,7 @@ cond_if
     }
 }
 | fcall
-| PRINT '(' exp ')' { printf("%d\n", $3); }
+| PRINT '(' exp ')' { printf("%lld\n", $3); }
 /* or macro call? */
 ;
 
@@ -135,15 +134,15 @@ NUM
 | MEM '[' exp ']'               { $$ = tbot_mem(t, $3); }
 | BOARD '[' exp ']' '[' exp ']' { $$ = tbot_board(g, $3, $6); }
 | PREVIEW '[' exp ']'           { $$ = tbot_preview(g, $3); }
-| "piece_counter"               { $$ = (int)g->p.s; } // todo
-| "score"                       { $$ = (int)g->score; }
-| "piece_type"                  { $$ = (int)g->p.s; }
-| "piece_x"                     { $$ = (int)g->p.pos.x; }
-| "piece_y"                     { $$ = (int)g->p.pos.y; }
+| "piece_counter"               { $$ = g->p.s; } // todo
+| "score"                       { $$ = g->score; }
+| "piece_type"                  { $$ = g->p.s; }
+| "piece_x"                     { $$ = g->p.pos.x; }
+| "piece_y"                     { $$ = g->p.pos.y; }
 | "ghost_y"                     { $$ = ghost_pos(g); }
-| "piece_angle"                 { $$ = (int)g->p.angle; }
-| "hold_piece_type"             { $$ = (int)g->held; }
-| fcall                         { $$ = $1; }
+| "piece_angle"                 { $$ = g->p.angle; }
+| "hold_piece_type"             { $$ = g->held;  }
+| fcall                         { $$ = $1;       }
 | exp "||" exp                  { $$ = $1 || $3; }
 | exp "&&" exp                  { $$ = $1 && $3; }
 | exp '|' exp                   { $$ = $1 |  $3; }
@@ -162,10 +161,10 @@ NUM
 | exp '*' exp                   { $$ = $1 *  $3; }
 | exp '/' exp                   { $$ = $1 /  $3; }
 | exp '%' exp                   { $$ = $1 %  $3; }
-| '~' exp                       { $$ = ~$2;           }
-| '-' exp  %prec NEG            { $$ = -$2;           }
-| '!' exp                       { $$ = !$2;           }
-| '(' exp ')'                   { $$ = $2;            }
+| '~' exp                       { $$ = ~$2;      }
+| '-' exp  %prec NEG            { $$ = -$2;      }
+| '!' exp                       { $$ = !$2;      }
+| '(' exp ')'                   { $$ = $2;       }
 | exp '?' { if (cond_active && !$1) { cond_active = 0; $$ = 1; } else { $$ = 0; } }
   exp ':' { if ($3) { cond_active = 1; }
             if (cond_active && !!$1) { cond_active = 0; $$ = 1; } }
@@ -294,7 +293,7 @@ int yylex (game_t *g, tbot_t *t) {
         while (isdigit(t->prog[end])) {
             end++;
         }
-        if (sscanf(t->prog + p, "%d", &yylval) != 1) {
+        if (sscanf(t->prog + p, "%lld", &yylval) != 1) {
             abort();
         }
         /* printf("%d", yylval); */

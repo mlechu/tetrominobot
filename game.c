@@ -180,7 +180,6 @@ piece_t new_piece(int s) {
 }
 
 game_t *new_game(game_t *g) {
-    srand(time(NULL));
     if (g == NULL) {
         g = calloc(sizeof(game_t), 1);
     }

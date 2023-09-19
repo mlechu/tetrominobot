@@ -25,6 +25,20 @@ todo add grammar
 
 ** exploit
 
+*** optional bug: srand (piece generator) control
+Intentionally lazy rng so the player can get deterministic and known pieces with a little
+effort. makes bug 1 a lot easier.
+- Before running the bot we call srand(x) where x is a small unsigned number that is the sum of all
+  bytes in the player input
+- The parser stops at an EOF character and so the user can put whatever they like after one.
+- Like in the real game, pieces are repeatedly drawn from a bag of 7, so this just controls the
+  permutations (the player can't just ask for I pieces). however it makes things much easier to
+  programmatically generate the after-eof garbage and get the same sequence of pieces every time, no
+  matter what they are.
+
+I'll use this bug for now to try and make intended bugs more attractive than any unintended ones.
+however, it would make for an interesting challenge to use real randomness.
+
 *** bug 1: libc?? leak
 - Like in the real game, pieces existing above the visible board does not kill you
   - you die when a new piece can't spawn (usually in the top-middle of the board)
@@ -34,6 +48,7 @@ todo add grammar
 - Like in the real game, there is no "move up" function, but if you are rotating a piece close to
   some obstacles, there is a bunch of "kick" positions that are tried, and many of these positions
   bump the rotated piece up
+
 
 ** potential bugs (not yet implemented)
 
@@ -52,15 +67,6 @@ todo add grammar
 - the ruleset maker treats "function calls" as a table lookup
 - TODO player can somehow sneak arbitrary call past the decision tree parser
 
-*** optional bug: srand (piece generator) control
-- Intentionally lazy rng so the player can get deterministic pieces with a little effort
-  - maybe take the hash of the program (add all bytes mod 256? xor all bytes?)
-  - easier idea (for the player): use ((pieces dropped) + the number of moves before the most recent
-    piece was dropped) mod 7
-- I'll use this bug for now to try and make the intended solution more attractive than any
-  unintended ones.  however, it would make for an interesting challenge to actually use random
-  pieces.
-
 ** flag
 - maple{tell the marketing department that we use 99% fewer CPU cycles than competing apps}
 
@@ -70,9 +76,10 @@ in descending order of importance
 
 - rng sum
 - global timeout
-- piece timeout
+- piece timeout?
 - guide
 - print should only do so when debugging
+- malloc tbot
 
 - macros? addressable by number, must be expr
 - bot name?

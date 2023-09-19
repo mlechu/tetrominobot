@@ -14,12 +14,28 @@ tbot_t *tbot_new(void) {
     printf("> ");
 
     fgets(global_tbot.prog, PROG_SIZE, stdin);
+
+    /* piece generator starting config is easily choosable by putting an EOF in
+     * the program and whatever characters after.
+     *
+     * player probably doesn't even care to predict; having the same set of
+     * pieces every time should be sufficient.
+     *
+     * patching the binary to srand(particular number) in practice mode is
+     * probably what i would do to hit the ceiling bug
+     */
+    uint16_t not_random = 0;
+    for (int i = 0; i < PROG_SIZE; i++) {
+        not_random += global_tbot.prog[i];
+    }
+    printf("%d", not_random);
+    srand(not_random);
+
     printf("program: %s\n", global_tbot.prog);
     return &global_tbot;
 }
 
 int tbot_run(tbot_t *t, game_t *g) {
-
     /* this is horrible */
     for (int i = 0; i < 2000; i++) {
         t->ppos = 0;
@@ -31,7 +47,6 @@ int tbot_run(tbot_t *t, game_t *g) {
             print_game(g);
         }
     }
-
     return 1;
 }
 
@@ -52,9 +67,10 @@ int gfunc_i(char *name, uint64_t n) {
 }
 
 int gfunc_call(int i, game_t *g) {
-    printf("CALLING %s\n", gfunc_table[i].name);
-    print_game(g);
-    return gfunc_table[i].f(g);
+    /* printf("calling %s\n", gfunc_table[i].name); */
+    int ok = gfunc_table[i].f(g);
+    /* printf("ok: %d", ok); */
+    return ok;
 }
 
 mem_t tbot_mem(tbot_t *t, int i) {

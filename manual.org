@@ -1,0 +1,6 @@
+* Grammar
+
+* Game functions
+Functions return 0 for success or nonzero for failure.
+
+* Game variables
