@@ -71,11 +71,6 @@
 
 %% /* The grammar follows. */
 
-input:
-%empty
-| input tbot
-;
-
 tbot:
 '{' stmts '}' { /* printf("============================\ntbot done!\n"); */}
 ;
@@ -134,7 +129,7 @@ NUM
 | MEM '[' exp ']'               { $$ = tbot_mem(t, $3); }
 | BOARD '[' exp ']' '[' exp ']' { $$ = tbot_board(g, $3, $6); }
 | PREVIEW '[' exp ']'           { $$ = tbot_preview(g, $3); }
-| "piece_counter"               { $$ = g->p.s; } // todo
+| "piece_counter"               { $$ = g->p.counter; } // todo
 | "score"                       { $$ = g->score; }
 | "piece_type"                  { $$ = g->p.s; }
 | "piece_x"                     { $$ = g->p.pos.x; }
@@ -179,6 +174,7 @@ semicolon.opt:
 
 void yyerror (game_t *g, tbot_t *t, char *s) {
     fprintf (stderr, "at pos %lld (\"%c\"): %s\n", t->ppos, t->prog[t->ppos], s);
+    exit(1);
 }
 
 uint64_t eat_ws(char *p, uint64_t ppos) {

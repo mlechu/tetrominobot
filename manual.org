@@ -1,6 +1,97 @@
-* Grammar
+Build your own tetrominobot!
 
-* Game functions
-Functions return 0 for success or nonzero for failure.
+To play as a human:
+#+begin_src
+  ./tetrominobot -p
+#+end_src
 
-* Game variables
+To run the example bot:
+#+begin_src
+  tr -d '\n' < simple.tbot | ./tetrominobot
+#+end_src
+
+The entire bot is run in a loop until death or timeout.
+
+** Grammar
+
+#+begin_src
+tbot:
+  '{' stmts '}'
+
+fcall:
+  "call" '(' gfunc ')'
+
+stmts:
+  /* empty */
+| stmt ';' stmts
+| stmt stmts
+
+stmt:
+  cond_if
+| "mem" '[' exp ']' '=' exp
+| fcall
+| "print" '(' exp ')'
+
+cond_if:
+  IF '(' exp ')' '{' stmts '}' cond_else
+
+cond_else:
+  /* empty */
+| ELSE '{' stmts '}'
+| ELSE cond_if
+
+exp:
+  NUM
+| "mem" '[' exp ']'
+| "board" '[' exp ']' '[' exp ']'
+| "preview" '[' exp ']'
+| "piece_counter"
+| "score"
+| "piece_type" /* I=1, O=2, T=3, J=4, L=5, S=6, Z=7 */
+| "piece_x"
+| "piece_y"
+| "ghost_y"
+| "piece_angle"
+| "hold_piece_type"
+| fcall
+| exp "||" exp
+| exp "&&" exp
+| exp '|' exp
+| exp '^' exp
+| exp '&' exp
+| exp "==" exp
+| exp "!=" exp
+| exp '>' exp
+| exp ">=" exp
+| exp '<' exp
+| exp "<=" exp
+| exp "<<" exp
+| exp ">>" exp
+| exp '+' exp
+| exp '-' exp
+| exp '*' exp
+| exp '/' exp
+| exp '%' exp
+| '~' exp
+| '-' exp  %prec NEG
+| '!' exp
+| '(' exp ')'
+| exp '?' exp ':' exp
+
+gfunc:
+  left
+| "right"
+| "down"
+| "sdrop"      /* drop, but not permanently */
+| "drop"       /* drop and commit */
+| "rot_l"      /* counterclockwise */
+| "rot_r"
+| "rot_180"
+| "hold"
+
+#+end_src
+
+*** In summary...
+- C-like conditionals, operators, statements
+- A chunk of memory mem[0-n] is given for counters and calculations
+- There is a predefined set of readable game variables and callable game functions

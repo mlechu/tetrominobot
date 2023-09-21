@@ -176,6 +176,7 @@ piece_t new_piece(int s) {
     p.pos.x = 3;
     p.pos.y = 0;
     p.angle = 0;
+    p.counter = 0;
     return p;
 }
 
@@ -378,6 +379,7 @@ int advance_shape(game_t *g) {
 }
 
 shape_t _move_lr(game_t *g, int diff) {
+    g->p.counter++;
     int old_x = g->p.pos.x;
     piece_t new_p = g->p;
     new_p.pos.x = old_x + diff;
@@ -405,6 +407,7 @@ shape_t _move_lr(game_t *g, int diff) {
 shape_t move_left(game_t *g) { return _move_lr(g, -1); }
 shape_t move_right(game_t *g) { return _move_lr(g, 1); }
 shape_t move_down(game_t *g) {
+    g->p.counter++;
     int old_y = g->p.pos.y;
     piece_t new_p = g->p;
     new_p.pos.y = old_y + 1;
@@ -426,13 +429,14 @@ shape_t move_down(game_t *g) {
 }
 
 shape_t move_sdrop(game_t *g) {
+    g->p.counter++;
     while (!move_down(g))
         ;
     return move_down(g);
 }
 
 /* For hard drop */
-shape_t move_commit(game_t *g) {
+shape_t _move_commit(game_t *g) {
     int dead = check_dead(g, &g->p);
     if (dead)
         return dead;
@@ -448,13 +452,15 @@ shape_t move_commit(game_t *g) {
 }
 
 shape_t move_drop(game_t *g) {
+    g->p.counter++;
     move_sdrop(g);
-    return move_commit(g);
+    return _move_commit(g);
 }
 
 /* Rotate a test piece and try each of the five coordinates in the kick list
  * (where 0,0 is tried first). If all fail, don't rotate */
 shape_t _move_rot(game_t *g, int old_a, int new_a) {
+    g->p.counter++;
     const pos_t(*kicklist)[5];
     if (g->p.s == P_O) {
         return 0;

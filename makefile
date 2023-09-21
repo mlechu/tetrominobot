@@ -6,7 +6,7 @@ BFLAGS := --no-lines
 # BFLAGS := -Wcounterexamples
 OUTDIR := out
 
-all: $(OUTDIR)/t |$(OUTDIR)
+all: $(OUTDIR)/tetrominobot |$(OUTDIR)
 
 $(OUTDIR):
 	mkdir -p $(OUTDIR)
@@ -23,16 +23,21 @@ $(OUTDIR)/robot: robot.c $(OUTDIR)/parse |$(OUTDIR)
 $(OUTDIR)/game: game.c |$(OUTDIR)
 	$(CC) -c $(CCFLAGS) $< -o $@
 
-$(OUTDIR)/t: t.c $(OUTDIR)/game $(OUTDIR)/robot $(OUTDIR)/parse |$(OUTDIR)
+$(OUTDIR)/tetrominobot: tetrominobot.c $(OUTDIR)/game $(OUTDIR)/robot $(OUTDIR)/parse |$(OUTDIR)
 	$(CC) $(CCFLAGS) $^ -o $@
 
 # makefile crimes for my own debugging
-$(OUTDIR)/tx: |$(OUTDIR)
+$(OUTDIR)/tx: robot.c game.c tetrominobot.c |$(OUTDIR)
 	rsync -rva --exclude $(OUTDIR) . vm:tbot
-	ssh -A vm "cd tbot && make"
-	scp vm:~/tbot/out/t $(OUTDIR)/tx
+	ssh -A vm "cd tbot && make && make run"
+	scp vm:~/tbot/out/tetrominobot $(OUTDIR)/tx
+
+tx: $(OUTDIR)/tx
 
 clean:
 	rm -rf $(OUTDIR)
+
+run: $(OUTDIR)/tetrominobot
+	tr -d '\n' < simple.tbot | ./out/tetrominobot
 
 .PHONY: all clean

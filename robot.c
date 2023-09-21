@@ -12,6 +12,7 @@ tbot_t *tbot_new(void) {
     puts("Build your own tetrominobot!");
     puts("Enter your bot description:");
     printf("> ");
+    fflush(stdout);
 
     fgets(global_tbot.prog, PROG_SIZE, stdin);
 
@@ -28,7 +29,7 @@ tbot_t *tbot_new(void) {
     for (int i = 0; i < PROG_SIZE; i++) {
         not_random += global_tbot.prog[i];
     }
-    printf("%d", not_random);
+    /* printf("%d", not_random); */
     srand(not_random);
 
     printf("program: %s\n", global_tbot.prog);
@@ -37,7 +38,7 @@ tbot_t *tbot_new(void) {
 
 int tbot_run(tbot_t *t, game_t *g) {
     /* this is horrible */
-    for (int i = 0; i < 2000; i++) {
+    for (int i = 0; i < 100; i++) {
         t->ppos = 0;
         yyparse(g, t);
         if (check_dead(g, &g->p)) {

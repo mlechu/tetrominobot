@@ -74,12 +74,44 @@ however, it would make for an interesting challenge to use real randomness.
 * todo
 in descending order of importance
 
-- rng sum
 - global timeout
 - piece timeout?
 - guide
 - print should only do so when debugging
 - malloc tbot
+- test game functions
 
 - macros? addressable by number, must be expr
 - bot name?
+
+* final bug
+
+currently investivating overwriting argv
+
+note: if the -p flag is found, we bypass the entire -d checking branch
+
+note: do not allow for bot names if i make the misc chall
+
+- bot name can be entered through argv, or through an initial fgets if not found. Debug mode can
+  only be enabled thru argv.
+  - enter bot name. set argv to this because lazy
+  - argv sees -d, so goes into debug mode
+- debug mode allows for an extra game function and adds it to the end of the table in the null spot
+  (sentinel)
+- the player-writable memory is allocated right after
+- gfunctable is a record of char *name and func *s
+- player will need to
+  - find a pointer to a string
+  - find a pointer to whatever they'd like (probably a ropchain in memory), and write these to
+    mem[0] and mem[1].
+    - The first should be trivial
+- This is all made easier by the fact the player can re-run the program with a different bot until
+  they quit or things segfault.
+
+
+
+TODO i need to make the simple bot not use mem[3] so it doesn't segfault in "debug mode" lol
+
+this seems convoluted but i'm imagining it would be pretty easy to be suspicious of the f*table and
+the player memory being so close together. i just need to make sure this doesn't open up any boring
+ways of finding good addresses (please use the ceiling bug or the t-spin bug)

@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
         /* do { */
         game_t *g = new_game(&global_game);
         tbot_t *t = tbot_new();
-        /* t->debug = 1; */
+        t->debug = 1;
         tbot_run(t, g);
 
         print_game(g);
