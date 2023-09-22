@@ -1,13 +1,13 @@
 Build your own tetrominobot!
 
-To play as a human:
+To practice with manual input:
 #+begin_src
   ./tetrominobot -p
 #+end_src
 
 To run the example bot:
 #+begin_src
-  tr -d '\n' < simple.tbot | ./tetrominobot
+  tr -d '\n' < simple.tbot | ./tetrominobot -n simple
 #+end_src
 
 The entire bot is run in a loop until death or timeout.
@@ -94,4 +94,4 @@ gfunc:
 *** In summary...
 - C-like conditionals, operators, statements
 - A chunk of memory mem[0-n] is given for counters and calculations
-- There is a predefined set of readable game variables and callable game functions
+- Moves may depend on a predefined set of readable game variables and callable game functions

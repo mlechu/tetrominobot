@@ -2,7 +2,7 @@ CC := gcc
 
 CCFLAGS := -I .
 BFLAGS := --no-lines
-# CCFLAGS := -g -I $(CURDIR) -Wall -Wextra -Wpedantic -fsanitize=address
+CCFLAGS := -g -I $(CURDIR) -Wall -Wextra -Wpedantic -fsanitize=address
 # BFLAGS := -Wcounterexamples
 OUTDIR := out
 

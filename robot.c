@@ -7,14 +7,11 @@
 
 tbot_t global_tbot = {0};
 
-tbot_t *tbot_new(void) {
+tbot_t *tbot_new(char *name, char *prog, int debug) {
     memset(&global_tbot, 0, sizeof(tbot_t));
-    puts("Build your own tetrominobot!");
-    puts("Enter your bot description:");
-    printf("> ");
-    fflush(stdout);
-
-    fgets(global_tbot.prog, PROG_SIZE, stdin);
+    global_tbot.name = name;
+    global_tbot.prog = prog;
+    global_tbot.debug = debug;
 
     /* piece generator starting config is easily choosable by putting an EOF in
      * the program and whatever characters after.
@@ -38,7 +35,7 @@ tbot_t *tbot_new(void) {
 
 int tbot_run(tbot_t *t, game_t *g) {
     /* this is horrible */
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < BOT_ITERATIONS; i++) {
         t->ppos = 0;
         yyparse(g, t);
         if (check_dead(g, &g->p)) {

@@ -87,6 +87,7 @@ in descending order of importance
 * final bug
 
 currently investivating overwriting argv
+^ can't really do; server prog isn't run with any args
 
 note: if the -p flag is found, we bypass the entire -d checking branch
 
@@ -101,10 +102,10 @@ note: do not allow for bot names if i make the misc chall
 - the player-writable memory is allocated right after
 - gfunctable is a record of char *name and func *s
 - player will need to
-  - find a pointer to a string
-  - find a pointer to whatever they'd like (probably a ropchain in memory), and write these to
-    mem[0] and mem[1].
-    - The first should be trivial
+  - call a predetermined string in the program
+  - find the pointer to this string and put this in mem[0]
+  - find a pointer to whatever they'd like and write it to mem[1]
+  - probably write a rop chain
 - This is all made easier by the fact the player can re-run the program with a different bot until
   they quit or things segfault.
 
