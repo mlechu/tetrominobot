@@ -39,7 +39,7 @@ effort. makes bug 1 a lot easier.
 I'll use this bug for now to try and make intended bugs more attractive than any unintended ones.
 however, it would make for an interesting challenge to use real randomness.
 
-*** bug 1: libc?? leak
+*** bug 1: libc leak through the ceiling
 - Like in the real game, pieces existing above the visible board does not kill you
   - you die when a new piece can't spawn (usually in the top-middle of the board)
 - An address or some other interesting data is stored above the board in memory
@@ -50,9 +50,9 @@ however, it would make for an interesting challenge to use real randomness.
   bump the rotated piece up
 
 
-** potential bugs (not yet implemented)
+** planned bugs
 
-*** t-spin bug
+*** bug 2: binary addr leak with a t-spin
 - the score delta when clearing n lines is array[n] where array is 4 constant ints stored on the
   stack
 - t-spins generally give a player more points than the raw amount of lines cleared
@@ -63,9 +63,27 @@ however, it would make for an interesting challenge to use real randomness.
 - score will increment by whatever interesting data lies after the array. player can access the
   score in their bot.
 
-*** arbitrary call
-- the ruleset maker treats "function calls" as a table lookup
-- TODO player can somehow sneak arbitrary call past the decision tree parser
+*** bug 3: arbitrary call using bad debug mode and buggy cmdline arg parser
+- bot name can be entered through argv, or through an initial fgets if not found.
+  - Debug mode can only be enabled thru argv
+  - everything is put together, so any bot name starting with - and containing d enables debug
+- debug mode allows for an extra game function and adds it to the end of the game function table in
+  the null spot
+  - where the null spot was previously used as the end indicator
+- the player-writable memory is allocated right after the gfunctable
+- gfunctable is a record of char *name and func *s
+- player will need to
+  - call a predetermined string in the program
+  - find the pointer (hard) to this string and put this in mem[0] (easy)
+  - find a pointer (hard) to whatever they'd like and write it to mem[1] (easy)
+  - probably write a rop chain? onegadget might be possible, don't really have time to check
+- This is all made easier by the fact the player can re-run the program with a different bot until
+  they quit or things segfault.
+
+this seems convoluted but i'm imagining it would be pretty easy to be suspicious of the f*table and
+the player memory being so close together. i just need to make sure this doesn't open up any boring
+ways of finding good addresses (please use the ceiling bug and/or the t-spin bug)
+
 
 ** flag
 - maple{tell the marketing department that we use 99% fewer CPU cycles than competing apps}
@@ -74,45 +92,12 @@ however, it would make for an interesting challenge to use real randomness.
 * todo
 in descending order of importance
 
-- global timeout
 - piece timeout?
-- guide
+- ask people to debug cmdline args
 - print should only do so when debugging
-- malloc tbot
 - test game functions
 
-- macros? addressable by number, must be expr
-- bot name?
-
-* final bug
-
-currently investivating overwriting argv
-^ can't really do; server prog isn't run with any args
-
-note: if the -p flag is found, we bypass the entire -d checking branch
-
-note: do not allow for bot names if i make the misc chall
-
-- bot name can be entered through argv, or through an initial fgets if not found. Debug mode can
-  only be enabled thru argv.
-  - enter bot name. set argv to this because lazy
-  - argv sees -d, so goes into debug mode
-- debug mode allows for an extra game function and adds it to the end of the table in the null spot
-  (sentinel)
-- the player-writable memory is allocated right after
-- gfunctable is a record of char *name and func *s
-- player will need to
-  - call a predetermined string in the program
-  - find the pointer to this string and put this in mem[0]
-  - find a pointer to whatever they'd like and write it to mem[1]
-  - probably write a rop chain
-- This is all made easier by the fact the player can re-run the program with a different bot until
-  they quit or things segfault.
+- i need to make the simple bot not use mem[3] so it doesn't segfault in "debug mode" lol
 
 
-
-TODO i need to make the simple bot not use mem[3] so it doesn't segfault in "debug mode" lol
-
-this seems convoluted but i'm imagining it would be pretty easy to be suspicious of the f*table and
-the player memory being so close together. i just need to make sure this doesn't open up any boring
-ways of finding good addresses (please use the ceiling bug or the t-spin bug)
+rot l no pie: 4227269
