@@ -93,5 +93,7 @@ gfunc:
 
 *** In summary...
 - C-like conditionals, operators, statements
-- A chunk of memory mem[0-n] is given for counters and calculations
-- Moves may depend on a predefined set of readable game variables and callable game functions
+- A chunk of memory mem[0-256] (8 bytes each) is given for counters and calculations
+- Moves may depend on a predefined set of readable game variables, as well as the return values of
+  callable game functions
+- The program is enclosed in curly braces and ends in EOF or NULL

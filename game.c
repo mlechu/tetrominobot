@@ -337,29 +337,78 @@ void print_game(game_t *g) {
     fflush(stdout);
 }
 
-int clear_lines(game_t *g) {
+/* hacky and bad. had to move the shape write here since otherwise can't handle
+ * t-spin. g2 is the same as g; it exists just to get leaked. */
+int clear_lines_write_shape(game_t *g) {
+    struct {
+        score_t scores[5];
+        game_t *g2;
+    } tsp_bug = {{0, 100, 300, 500, 800}, g};
+
+    int should_clear = 0;
     int rowcnt[BOARD_H] = {0}; /* row fullness */
+
+    pos_t curr_cells[4];
+    get_cells(tsp_bug.g2->p, curr_cells);
+
+    for (int i = 0; i < 4; i++) {
+        /* count the current piece */
+        rowcnt[curr_cells[i].y]++;
+    }
     for (int y = 0; y < BOARD_H; y++) {
         for (int x = 0; x < BOARD_W; x++) {
-            if (g->board[y][x] != P_NONE) {
+            if (tsp_bug.g2->board[y][x] != P_NONE) {
                 rowcnt[y]++;
             }
         }
+        if (rowcnt[y] == BOARD_W) {
+            should_clear = 1;
+        }
     }
 
-    /* a bug here could work if there's a way to clear more lines */
+    /* early return if no lines to clear */
+    if (!should_clear) {
+        /* writing the shape to the board */
+        for (int i = 0; i < 4; i++) {
+            tsp_bug.g2->board[curr_cells[i].y][curr_cells[i].x] = tsp_bug.g2->p.s;
+        }
+        return 0;
+    }
+
     /* maybe if piece == T and move_up == dead then score_i = 4 and t-spin
      * triple gives score_i = 5 */
-    int score[] = {0, 100, 300, 500, 800};
     int score_i = 0;
 
-    int src_y = BOARD_H - 1;
+    if (tsp_bug.g2->p.s == P_T) {
+        /* puts("is T"); */
+        piece_t new_p = tsp_bug.g2->p;
+        new_p.pos.y = tsp_bug.g2->p.pos.y - 1;
 
+        pos_t cells[4];
+        get_cells(new_p, cells);
+        int min_y = min4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
+        if (min_y >= 0 && check_dead(g, &new_p)) {
+            /* BUG: If we find a t-spin (last piece was a t piece AND it cannot
+             * be moved up one spot AND we clear at least one line) we try to
+             * boost the score by setting score_i. Since the line clear counting
+             * happens after regardless, we get max points for a t-spin single,
+             * and two possible leaks for 2 and 3 cleared lines respectively.
+             */
+            score_i = 3;
+        }
+    }
+
+    /* writing the shape to the board */
+    for (int i = 0; i < 4; i++) {
+        tsp_bug.g2->board[curr_cells[i].y][curr_cells[i].x] = tsp_bug.g2->p.s;
+    }
+
+    int src_y = BOARD_H - 1;
     /* I suppose an overflow when shifting things down could also be good */
     for (int dst_y = BOARD_H - 1; dst_y >= 0; dst_y--, src_y--) {
         if (src_y < 0) { /* nothing to shift; copy a blank line */
             for (int x = 0; x < BOARD_W; x++) {
-                g->board[dst_y][x] = P_NONE;
+                tsp_bug.g2->board[dst_y][x] = P_NONE;
             }
         } else {
             while (rowcnt[src_y] == BOARD_W && src_y >= 0) { /* clear */
@@ -367,11 +416,14 @@ int clear_lines(game_t *g) {
                 score_i++;
             }
             for (int x = 0; x < BOARD_W; x++) {
-                g->board[dst_y][x] = g->board[src_y][x];
+                tsp_bug.g2->board[dst_y][x] = tsp_bug.g2->board[src_y][x];
             }
         }
     }
-    return score[score_i];
+
+    /* printf("score_i: %d\n", score_i); */
+    fflush(stdout);
+    return tsp_bug.scores[score_i];
 }
 
 /* Shift the queue forward, filling in the new spot, and throwing away curr.
@@ -447,13 +499,8 @@ shape_t _move_commit(game_t *g) {
     int dead = check_dead(g, &g->p);
     if (dead)
         return dead;
-    pos_t cells[4];
-    get_cells(g->p, cells);
-    for (int i = 0; i < 4; i++) {
-        g->board[cells[i].y][cells[i].x] = g->p.s;
-    }
 
-    g->score += clear_lines(g);
+    g->score += clear_lines_write_shape(g);
     advance_shape(g);
     return check_dead(g, &g->p);
 }
@@ -503,7 +550,7 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
         int max_y = max4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
 
         if (min_x < 0 || max_x >= BOARD_W || max_y >= BOARD_H) {
-            puts("pwall");
+            /* puts("pwall"); */
             lol_out = max2(lol_out, P_WALL);
         } else if (check_dead(g, &new_p)) {
             /* puts("cd"); */

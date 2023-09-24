@@ -25,9 +25,12 @@ todo add grammar
 
 ** exploit
 
+It might suffice to do either bug 1 or bug 2 interchangably (1 probably being more useful; 2 is
+mostly there because having a t-spin leak is funny). 3 should be mandatory.
+
 *** optional bug: srand (piece generator) control
 Intentionally lazy rng so the player can get deterministic and known pieces with a little
-effort. makes bug 1 a lot easier.
+effort. makes bugs 1+2 a lot easier.
 - Before running the bot we call srand(x) where x is a small unsigned number that is the sum of all
   bytes in the player input
 - The parser stops at an EOF character and so the user can put whatever they like after one.
@@ -49,10 +52,7 @@ however, it would make for an interesting challenge to use real randomness.
   some obstacles, there is a bunch of "kick" positions that are tried, and many of these positions
   bump the rotated piece up
 
-
-** planned bugs
-
-*** bug 2: binary addr leak with a t-spin
+*** bug 2: base addr leak with a t-spin
 - the score delta when clearing n lines is array[n] where array is 4 constant ints stored on the
   stack
 - t-spins generally give a player more points than the raw amount of lines cleared
@@ -62,6 +62,8 @@ however, it would make for an interesting challenge to use real randomness.
   check increment it with additional lines cleared
 - score will increment by whatever interesting data lies after the array. player can access the
   score in their bot.
+
+decided to go with 2 lines good enough for a leak. i don't even know how to do a t-spin triple lol
 
 *** bug 3: arbitrary call using bad debug mode and buggy cmdline arg parser
 - bot name can be entered through argv, or through an initial fgets if not found.

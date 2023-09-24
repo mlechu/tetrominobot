@@ -173,6 +173,7 @@ semicolon.opt:
 %%
 
 void yyerror (game_t *g, tbot_t *t, char *s) {
+    (void)g;
     fprintf (stderr, "at pos %ld (\"%c\"): %s\n", t->ppos, t->prog[t->ppos], s);
     exit(1);
 }
@@ -263,6 +264,7 @@ int toksearch(tokdef_t *tlist, char *tok, uint64_t l) {
  * Treat anything else as EOF.
  */
 int yylex (game_t *g, tbot_t *t) {
+    (void)g;
     /* yydebug = 1; */
 
     t->ppos = eat_ws(t->prog, t->ppos);

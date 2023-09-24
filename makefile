@@ -1,9 +1,10 @@
 CC := gcc
 
-CCFLAGS := -I .
+CCFLAGS := -I . -O1
 BFLAGS := --no-lines
-CCFLAGS := -g -I $(CURDIR) -Wall -Wextra # -fsanitize=address -Wpedantic
-CCFLAGS += -fno-pie -no-pie
+# CCFLAGS := -I $(CURDIR)
+# CCFLAGS += -g -Wall -Wextra -Wpedantic
+# CCFLAGS += -fno-pie -no-pie
 # BFLAGS := -Wcounterexamples
 OUTDIR := out
 
@@ -30,7 +31,7 @@ $(OUTDIR)/tetrominobot: tetrominobot.c $(OUTDIR)/game $(OUTDIR)/robot $(OUTDIR)/
 # makefile crimes for my own debugging
 $(OUTDIR)/tx: robot.c game.c tetrominobot.c |$(OUTDIR)
 	rsync -rva --exclude $(OUTDIR) . vm:tbot
-	ssh -A vm "cd tbot && make && make run"
+	ssh -A vm "cd tbot && make"
 	scp vm:~/tbot/out/tetrominobot $(OUTDIR)/tx
 
 tx: $(OUTDIR)/tx
