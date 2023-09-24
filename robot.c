@@ -3,15 +3,51 @@
 #include "out/parse.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 
-tbot_t global_tbot = {0};
+buggy_t buggy = {{{"left", move_left},
+                  {"right", move_right},
+                  {"down", move_down},
+                  {"drop", move_drop},
+                  {"rot_l", move_rot_l},
+                  {"rot_r", move_rot_r},
+                  {"rot_180", move_rot_180},
+                  {"hold", move_hold},
+                  {"sdrop", move_sdrop},
+                  {0},
+                  {0}},
+                 {0}};
 
-tbot_t *tbot_new(char *name, char *prog, int debug) {
-    memset(&global_tbot, 0, sizeof(tbot_t));
-    global_tbot.name = name;
-    global_tbot.prog = prog;
-    global_tbot.debug = debug;
+/* ideally not revealing the struct (tbot = &tbot + 0, not &buggy + sizeof
+ * functable) */
+gfte_t(*const gfunc_table) = (gfte_t *const)&buggy.gfunctable;
+tbot_t *const global_tbot = &buggy.global_tbot;
+
+/* fte_t gfunc_table[] = {{"left", move_left}, */
+/*                        {"right", move_right}, */
+/*                        {"down", move_down}, */
+/*                        {"drop", move_drop}, */
+/*                        {"rot_l", move_rot_l}, */
+/*                        {"rot_r", move_rot_r}, */
+/*                        {"rot_180", move_rot_180}, */
+/*                        {"hold", move_hold}, */
+/*                        {"sdrop", move_sdrop}, */
+/*                        {0}, */
+/*                        {0}}; */
+/* tbot_t global_tbot = {0}; */
+
+tbot_t *tbot_new(tbot_t *t, char *name, char *prog, int debug) {
+    if (!t) {
+        t = global_tbot;
+    }
+    memset(t, 0, sizeof(tbot_t));
+    *t = (tbot_t){.name = name, .prog = prog, .debug = debug};
+    if (t->debug) {
+        gfunct_extend((gfte_t){.name = "commit", .f = &_move_commit});
+        gfunct_extend(
+            (gfte_t){.name = "dump", .f = (shape_t(*)(game_t *)) & print_game});
+    }
 
     /* piece generator starting config is easily choosable by putting an EOF in
      * the program and whatever characters after.
@@ -23,14 +59,18 @@ tbot_t *tbot_new(char *name, char *prog, int debug) {
      * probably what i would do to hit the ceiling bug
      */
     uint16_t not_random = 0;
-    for (int i = 0; i < PROG_SIZE; i++) {
-        not_random += global_tbot.prog[i];
+    int plen = strlen(t->prog);
+    for (int i = 0; i < plen; i++) {
+        not_random += t->prog[i];
     }
     /* printf("%d", not_random); */
     srand(not_random);
 
-    printf("program: %s\n", global_tbot.prog);
-    return &global_tbot;
+    if (t->debug) {
+        printf("program: %s\n", t->prog);
+    }
+
+    return t;
 }
 
 int tbot_run(tbot_t *t, game_t *g) {
@@ -48,15 +88,8 @@ int tbot_run(tbot_t *t, game_t *g) {
     return 1;
 }
 
-fte_t gfunc_table[] = {
-    {"left", move_left},       {"right", move_right}, {"down", move_down},
-    {"drop", move_drop},       {"rot_l", move_rot_l}, {"rot_r", move_rot_r},
-    {"rot_180", move_rot_180}, {"hold", move_hold},   {"sdrop", move_sdrop}};
-
-int gfunc_n = sizeof(gfunc_table) / sizeof(fte_t);
-
 int gfunc_i(char *name, uint64_t n) {
-    for (int i = 0; i < gfunc_n; i++) {
+    for (int i = 0; gfunc_table[i].name != NULL; i++) {
         if (!strncmp(gfunc_table[i].name, name, n)) {
             return i;
         }
@@ -64,11 +97,24 @@ int gfunc_i(char *name, uint64_t n) {
     return -1;
 }
 
+/* BUG: using null as the end */
 int gfunc_call(int i, game_t *g) {
     /* printf("calling %s\n", gfunc_table[i].name); */
     int ok = gfunc_table[i].f(g);
     /* printf("ok: %d", ok); */
     return ok;
+}
+
+/* BUG: no */
+int gfunct_extend(gfte_t fte) {
+    int i = 0;
+    for (; gfunc_table[i].name != NULL; i++) {
+        if (!strcmp(gfunc_table[i].name, fte.name)) {
+            return -1;
+        }
+    }
+    gfunc_table[i] = fte;
+    return i;
 }
 
 mem_t tbot_mem(tbot_t *t, int i) {

@@ -48,6 +48,7 @@ typedef struct {
     shape_t preview[PIECE_PREVIEWS];
     /* whether or not player is playing by hand */
     int practice;
+    char *name;
 } game_t;
 
 typedef struct {
@@ -57,8 +58,8 @@ typedef struct {
 
 shape_t rand_shape(void);
 void get_cells(piece_t p, pos_t out[4]);
-piece_t new_piece(int s);
-game_t *new_game(game_t *g);
+/* piece_t new_piece(int s); */
+game_t *new_game(game_t *g, char *name);
 shape_t check_dead(game_t *g, const piece_t *const p);
 int ghost_pos(game_t *g);
 void print_game(game_t *g);
@@ -68,6 +69,7 @@ shape_t move_left(game_t *g);
 shape_t move_right(game_t *g);
 shape_t move_down(game_t *g);
 shape_t move_sdrop(game_t *g);
+shape_t _move_commit(game_t *g);
 shape_t move_drop(game_t *g);
 shape_t move_rot_r(game_t *g);
 shape_t move_rot_180(game_t *g);

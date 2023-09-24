@@ -2,7 +2,8 @@ CC := gcc
 
 CCFLAGS := -I .
 BFLAGS := --no-lines
-CCFLAGS := -g -I $(CURDIR) -Wall -Wextra -Wpedantic -fsanitize=address
+CCFLAGS := -g -I $(CURDIR) -Wall -Wextra # -fsanitize=address -Wpedantic
+CCFLAGS += -fno-pie -no-pie
 # BFLAGS := -Wcounterexamples
 OUTDIR := out
 
@@ -38,6 +39,6 @@ clean:
 	rm -rf $(OUTDIR)
 
 run: $(OUTDIR)/tetrominobot
-	tr -d '\n' < simple.tbot | ./out/tetrominobot
+	tr -d '\n' < simple.tbot | ./out/tetrominobot -n -dfucko
 
 .PHONY: all clean

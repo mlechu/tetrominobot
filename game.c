@@ -1,5 +1,6 @@
 #include "game.h"
 #include "util.h"
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -18,7 +19,7 @@ const int GHOST_COLOURS[] = {16, 6, 3, 5, 4, 130, 2, 1};
 
 /* [angle][shape][cell] */
 const pos_t SHAPES[4][8][4] = {
-    {{0},
+    {{{0}},
      {{0, 1}, {1, 1}, {2, 1}, {3, 1}},  /* I */
      {{1, 1}, {1, 2}, {2, 1}, {2, 2}},  /* O */
      {{1, 1}, {0, 1}, {1, 0}, {2, 1}},  /* T */
@@ -27,7 +28,7 @@ const pos_t SHAPES[4][8][4] = {
      {{0, 1}, {1, 1}, {1, 0}, {2, 0}},  /* S */
      {{0, 0}, {1, 0}, {1, 1}, {2, 1}}}, /* Z */
 
-    {{0},
+    {{{0}},
      {{2, 0}, {2, 1}, {2, 2}, {2, 3}},  /* I */
      {{1, 1}, {1, 2}, {2, 1}, {2, 2}},  /* O */
      {{1, 1}, {1, 0}, {2, 1}, {1, 2}},  /* T */
@@ -36,7 +37,7 @@ const pos_t SHAPES[4][8][4] = {
      {{1, 0}, {1, 1}, {2, 1}, {2, 2}},  /* S */
      {{2, 0}, {1, 1}, {2, 1}, {1, 2}}}, /* Z */
 
-    {{0},
+    {{{0}},
      {{0, 2}, {1, 2}, {2, 2}, {3, 2}},  /* I */
      {{1, 1}, {1, 2}, {2, 1}, {2, 2}},  /* O */
      {{1, 1}, {2, 1}, {1, 2}, {0, 1}},  /* T */
@@ -45,7 +46,7 @@ const pos_t SHAPES[4][8][4] = {
      {{0, 2}, {1, 2}, {1, 1}, {2, 1}},  /* S */
      {{0, 1}, {1, 1}, {1, 2}, {2, 2}}}, /* Z */
 
-    {{0},
+    {{{0}},
      {{1, 0}, {1, 1}, {1, 2}, {1, 3}}, /* I */
      {{1, 1}, {1, 2}, {2, 1}, {2, 2}}, /* O */
      {{1, 1}, {1, 2}, {0, 1}, {1, 0}}, /* T */
@@ -137,7 +138,7 @@ int bag_fullness = 7;
 char bag[7];
 
 /* at least a little random */
-shape_t rand_shape() {
+shape_t rand_shape(void) {
     if (bag_fullness == 0) {
         memset(bag, 0, sizeof bag);
         bag_fullness = 7;
@@ -168,7 +169,7 @@ void get_cells(piece_t p, pos_t out[4]) {
     }
 }
 
-piece_t new_piece(int s) {
+piece_t new_piece(shape_t s) {
     piece_t p;
     p.s = s != 0 ? s : rand_shape();
     p.colour = PIECE_COLOURS[p.s];
@@ -180,14 +181,18 @@ piece_t new_piece(int s) {
     return p;
 }
 
-game_t *new_game(game_t *g) {
-    if (g == NULL) {
+game_t *new_game(game_t *g, char *gname) {
+    if (!g) {
         g = calloc(sizeof(game_t), 1);
+    }
+    if (!gname) {
+        gname = "";
     }
     g->p = new_piece(0);
     for (int i = 0; i < PIECE_PREVIEWS; i++) {
         g->preview[i] = rand_shape();
     }
+    g->name = gname;
     return g;
 }
 
@@ -293,16 +298,18 @@ void print_game(game_t *g) {
 
     /* print */
     printf("\n");
-    if (g->practice) {
-        printf("+------------+--------------------+------------+\n");
-        printf("| Hold:      |  *Practice mode*   | Next:      |\n");
-        printf("+------------+--------------------+------------+\n");
 
-    } else {
-        printf("+------------+--------------------+------------+\n");
-        printf("| Hold:      |                    | Next:      |\n");
-        printf("+------------+--------------------+------------+\n");
+    printf("+------------+--------------------+------------+\n");
+    /* printf("| Hold:      | *Practice mode*    | Next:      |\n"); */
+
+    printf("| Hold:      | ");
+    int namelen = strlen(g->name);
+    for (int i = 0; i < 18; i++) {
+        putchar(i < namelen && isprint(g->name[i]) ? g->name[i] : ' ');
     }
+    printf(" | Next:      |\n");
+
+    printf("+------------+--------------------+------------+\n");
 
     for (int y = 0; y < BOARD_H; y++) {
         printf("|");
@@ -322,7 +329,7 @@ void print_game(game_t *g) {
         printf(TERM_ENDCOLOUR);
         printf("|\n");
     }
-        printf("+------------+--------------------+------------+\n");
+    printf("+------------+--------------------+------------+\n");
     if (g->practice) {
         printf("|            | wasd  SPC   . - =  |            |\n");
         printf("+------------+--------------------+------------+\n");
@@ -499,7 +506,7 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
             puts("pwall");
             lol_out = max2(lol_out, P_WALL);
         } else if (check_dead(g, &new_p)) {
-            puts("cd");
+            /* puts("cd"); */
             lol_out = max2(lol_out, check_dead(g, &new_p));
         } else {
             /* printf("ROT: Success\n"); */
@@ -586,14 +593,14 @@ score_t play_manual(game_t *g) {
     set_up_term();
     srand(time(NULL));
     int done = 0;
-    g = new_game(g);
+    g = new_game(g, "*Practice mode*");
     g->practice = 1;
     do {
         done = add_piece_manual(g);
     } while (!done);
 
     score_t score = g->score;
-    printf("Score: %llu\n", score);
+    printf("Score: %lu\n", score);
     restore_term();
     return score;
 }

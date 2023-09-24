@@ -43,8 +43,8 @@ int main(int argc, char **argv) {
 
     if (option_i(av2, ac2, 'h') != -1) {
         puts("Usage: ./tetrominobot [options] ");
-        puts("       -b [program]   specify the bot and run once.\n"
-             "                      remember to quote input.");
+        puts("       -b [program]   specify the bot and run once\n"
+             "                      (remember to quote input)");
         puts("       -n [name]      specify the bot name");
         puts("       -d             debug mode");
         puts("       -h             print this help");
@@ -59,11 +59,11 @@ int main(int argc, char **argv) {
 
     char retry[3] = {0};
     do {
-        int dnf1, dnf2 = 0;
+        int dnf1 = 0, dnf2 = 0;
         int npos = option_i(av2, ac2, 'n');
-        if (npos != -1 && npos < argc) {
+        if (npos != -1 && npos + 1 < argc) {
             /* name specified in argv */
-            av2[ac2 - 2] = av2[npos];
+            av2[ac2 - 2] = av2[npos + 1];
             dnf1 = 1;
         } else {
             /* ask */
@@ -75,8 +75,8 @@ int main(int argc, char **argv) {
         }
 
         int bpos = option_i(av2, ac2, 'b');
-        if (bpos != -1 && bpos < argc) {
-            av2[ac2 - 1] = av2[bpos];
+        if (bpos != -1 && bpos + 1 < argc) {
+            av2[ac2 - 1] = av2[bpos + 1];
             dnf2 = 1;
         } else {
             av2[ac2 - 1] = malloc(PROG_SIZE);
@@ -87,28 +87,32 @@ int main(int argc, char **argv) {
             fgets(av2[ac2 - 1], PROG_SIZE, stdin);
         }
 
-        game_t *g = new_game(&global_game);
-        tbot_t *t = tbot_new(av2[ac2 - 2], av2[ac2 - 1],
+        game_t *g = new_game(&global_game, av2[ac2 - 2]);
+        tbot_t *t = tbot_new(NULL, av2[ac2 - 2], av2[ac2 - 1],
                              !(option_i(av2, ac2, 'd') == -1));
         tbot_run(t, g);
 
         print_game(g);
-        printf("Score: %llu\n", g->score);
-        puts("Retry? (y/N)");
-        printf("> ");
-        fgets(retry, 3, stdin);
-        /* free(g); // free each time? */
+        printf("Score: %lu\n", g->score);
 
-        if (!dnf1) {
-            free(av2[ac2 - 2]);
-            av2[ac2 - 2] = NULL;
+        if (bpos != -1) {
+            break;
+        } else {
+            puts("Retry? (y/N)");
+            printf("> ");
+            fgets(retry, 3, stdin);
+            /* free(g); // free each time? */
+
+            if (!dnf1) {
+                free(av2[ac2 - 2]);
+                av2[ac2 - 2] = NULL;
+            }
+            if (!dnf2) {
+                free(av2[ac2 - 1]);
+                av2[ac2 - 1] = NULL;
+            }
         }
-        if (!dnf2) {
-            free(av2[ac2 - 1]);
-            av2[ac2 - 1] = NULL;
-        }
-    } while (option_i(av2, ac2, 'b') == -1 &&
-             (retry[0] == 'y' || retry[0] == 'Y'));
+    } while (retry[0] == 'y' || retry[0] == 'Y');
 
     free(av2);
     return 0;

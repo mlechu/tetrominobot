@@ -25,12 +25,12 @@ int min4(int a, int b, int c, int d) { return min2(min2(a, b), min2(c, d)); }
 
 static struct termios oldt, newt;
 
-void clear_term() {
+void clear_term(void) {
     /* uncomment for erasable frames */
     /* printf(ED_ENTIRE); */
 }
 
-void set_up_term() {
+void set_up_term(void) {
     setvbuf(stdout, NULL, _IOFBF, 0);
     /* setvbuf(stdout, NULL, _IONBF, 0); */
     /* printf(ALT_ENA); */
@@ -43,7 +43,7 @@ void set_up_term() {
     clear_term();
 }
 /* [?1049l */
-void restore_term() {
+void restore_term(void) {
     /* printf(ALT_DIS); */
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 }

@@ -106,7 +106,7 @@ cond_if
     }
 }
 | fcall
-| PRINT '(' exp ')' { printf("%lld\n", $3); }
+| PRINT '(' exp ')' { printf("%ld\n", $3); }
 /* or macro call? */
 ;
 
@@ -173,7 +173,7 @@ semicolon.opt:
 %%
 
 void yyerror (game_t *g, tbot_t *t, char *s) {
-    fprintf (stderr, "at pos %lld (\"%c\"): %s\n", t->ppos, t->prog[t->ppos], s);
+    fprintf (stderr, "at pos %ld (\"%c\"): %s\n", t->ppos, t->prog[t->ppos], s);
     exit(1);
 }
 
@@ -289,7 +289,7 @@ int yylex (game_t *g, tbot_t *t) {
         while (isdigit(t->prog[end])) {
             end++;
         }
-        if (sscanf(t->prog + p, "%lld", &yylval) != 1) {
+        if (sscanf(t->prog + p, "%ld", &yylval) != 1) {
             abort();
         }
         /* printf("%d", yylval); */

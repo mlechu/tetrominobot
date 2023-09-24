@@ -20,7 +20,7 @@ typedef struct {
     int debug;
 } tbot_t;
 
-tbot_t *tbot_new(char *name, char *prog, int debug);
+tbot_t *tbot_new(tbot_t *t, char *name, char *prog, int debug);
 int tbot_run(tbot_t *t, game_t *g);
 
 typedef shape_t(gfunc_t)(game_t *g);
@@ -28,10 +28,20 @@ typedef shape_t(gfunc_t)(game_t *g);
 typedef struct {
     char *name;
     gfunc_t *f;
-} fte_t;
+} gfte_t;
+
+/* struct purely to make the overwite between two global structs easier without
+ * a linker script */
+typedef struct {
+    gfte_t gfunctable[11];
+    tbot_t global_tbot;
+} buggy_t;
+
+extern gfte_t (*const gfunc_table);
 
 int gfunc_i(char *name, uint64_t n);
 int gfunc_call(int i, game_t *g);
+int gfunct_extend(gfte_t fte);
 
 /* checked array accesses */
 mem_t tbot_mem(tbot_t *t, int i);

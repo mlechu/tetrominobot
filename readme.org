@@ -85,6 +85,11 @@ the player memory being so close together. i just need to make sure this doesn't
 ways of finding good addresses (please use the ceiling bug and/or the t-spin bug)
 
 
+current working bug demo minus pie which calls rot_l by its address:
+
+~{ mem[0] = 4219153; mem[1] = 4207180; call(help) }~
+
+
 ** flag
 - maple{tell the marketing department that we use 99% fewer CPU cycles than competing apps}
 
@@ -96,8 +101,3 @@ in descending order of importance
 - ask people to debug cmdline args
 - print should only do so when debugging
 - test game functions
-
-- i need to make the simple bot not use mem[3] so it doesn't segfault in "debug mode" lol
-
-
-rot l no pie: 4227269
