@@ -235,7 +235,7 @@ int ghost_pos(game_t *g) {
     return ghost.pos.y;
 }
 
-void print_game(game_t *g) {
+shape_t print_game(game_t *g) {
     clear_term();
     board_t outb = {0};
     /* board pieces and voids */
@@ -335,12 +335,16 @@ void print_game(game_t *g) {
         printf("+------------+--------------------+------------+\n");
     }
     fflush(stdout);
+    return 0;
 }
 
 /* hacky and bad. had to move the shape write here since otherwise can't handle
- * t-spin. g2 is the same as g; it exists just to get leaked. */
+ * t-spin. g2 is the same as g; it exists just to get leaked.  there is
+ * literally nothing interesting on the stack except the ra, which requires i
+ * hop over the cookie and rbp, so i copy the game pointer after the bad array
+ * instead. */
 int clear_lines_write_shape(game_t *g) {
-    struct {
+    volatile struct {
         score_t scores[5];
         game_t *g2;
     } tsp_bug = {{0, 100, 300, 500, 800}, g};
@@ -370,7 +374,8 @@ int clear_lines_write_shape(game_t *g) {
     if (!should_clear) {
         /* writing the shape to the board */
         for (int i = 0; i < 4; i++) {
-            tsp_bug.g2->board[curr_cells[i].y][curr_cells[i].x] = tsp_bug.g2->p.s;
+            tsp_bug.g2->board[curr_cells[i].y][curr_cells[i].x] =
+                tsp_bug.g2->p.s;
         }
         return 0;
     }

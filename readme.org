@@ -103,3 +103,8 @@ in descending order of importance
 - ask people to debug cmdline args
 - print should only do so when debugging
 - test game functions
+
+
+* building
+
+~make handouts~ should build a correct docker image and run ~make~ there.

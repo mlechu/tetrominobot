@@ -1,0 +1,10 @@
+# this is for my own building the "prod" version (not ctf infra)
+
+FROM ubuntu:22.04
+RUN apt-get update -y && apt-get -y install gcc make bison
+# CMD tail -f /dev/null
+
+CMD /bin/bash
+
+# docker build . -t tbot_img
+# docker run --rm -it --name tbot_test -v $PWD:/host tbot_img
