@@ -72,11 +72,9 @@ handouts: robot.c game.c tetrominobot.c player-manual.org makefile $(OUTDIR)/doc
 	docker restart $(D_CON)
 	docker cp . $(D_CON):$(D_BUILD)
 	docker exec $(D_CON) /bin/bash -c 'cd $(D_BUILD) && make'
-	docker exec $(D_CON) /bin/bash -c 'cd $(D_BUILD) && make'
 ifneq ($(DEBUG),1)
 	docker exec $(D_CON) /bin/bash -c 'strip --strip-all $(D_BUILD)/$(OUTDIR)/tetrominobot'
 endif
-	docker cp $(D_CON):$(D_BUILD)/$(OUTDIR)/tetrominobot $(HDIR)
 	docker cp $(D_CON):$(D_BUILD)/$(OUTDIR)/tetrominobot $(HDIR)
 	docker cp $(D_CON):/lib/x86_64-linux-gnu/libc.so.6 $(HDIR)
 	docker cp $(D_CON):/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 $(HDIR)

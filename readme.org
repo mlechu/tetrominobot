@@ -52,6 +52,31 @@ however, it would make for an interesting challenge to use real randomness.
   some obstacles, there is a bunch of "kick" positions that are tried, and many of these positions
   bump the rotated piece up
 
+illustration (i am at the mercy of where gcc decides to put things, but this has been stable so far)
+
+#+begin_src
+
+
+            unhelpful data    | libc *  |         | libc *  |
+          (currently all zero)| stdout  |         | stdin   |
+          +----+----+----+----+----+----+----+----+----+----+
+ROW -2    |    |    |    |    |XXXX|XXXX|    |    |XXXX|XXXX|
+          |    |    |    |    |XXXX|XXXX|    |    |XXXX|XXXX|
+          +----+----+----+----+----+----+----+----+----+----+
+
+                    | libc *  |     completed.0
+                    | stderr  |     (24 bytes)
+          +----+----+----+----+----+----+----+----+----+----+
+ROW -1    |    |    |XXXX|XXXX|    |    |    |    |    |    |
+          |    |    |XXXX|XXXX|    |    |    |    |    |    |
+          +----+----+----+----+----+----+----+----+----+----+
+
+          +----+----+----+----+----+----+----+----+----+----+
+ROW 0     |   real board here...                            |
+
+#+end_src
+
+
 *** bug 2: base addr leak with a t-spin
 - the score delta when clearing n lines is array[n] where array is 4 constant ints stored on the
   stack

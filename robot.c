@@ -81,9 +81,10 @@ int tbot_run(tbot_t *t, game_t *g) {
         if (check_dead(g, &g->p)) {
             break;
         }
-        if (t->debug) {
-            print_game(g);
-        }
+        /* this gets to be a little much when coming from the remote */
+        /* if (t->debug) { */
+        /*     print_game(g); */
+        /* } */
     }
     return 1;
 }

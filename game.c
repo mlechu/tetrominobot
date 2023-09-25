@@ -343,7 +343,7 @@ shape_t print_game(game_t *g) {
  * literally nothing interesting on the stack except the ra, which requires i
  * hop over the cookie and rbp, so i copy the game pointer after the bad array
  * instead. */
-int clear_lines_write_shape(game_t *g) {
+score_t clear_lines_write_shape(game_t *g) {
     volatile struct {
         score_t scores[5];
         game_t *g2;

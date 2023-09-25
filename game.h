@@ -63,7 +63,7 @@ game_t *new_game(game_t *g, char *name);
 shape_t check_dead(game_t *g, const piece_t *const p);
 int ghost_pos(game_t *g);
 shape_t print_game(game_t *g);
-int clear_lines_write_shape(game_t *g);
+score_t clear_lines_write_shape(game_t *g);
 int advance_shape(game_t *g);
 shape_t move_left(game_t *g);
 shape_t move_right(game_t *g);

@@ -87,9 +87,10 @@ int main(int argc, char **argv) {
             fgets(av2[ac2 - 1], PROG_SIZE, stdin);
         }
 
-        game_t *g = new_game(&global_game, av2[ac2 - 2]);
+        /* srand initialized in tbot. fixme */
         tbot_t *t = tbot_new(NULL, av2[ac2 - 2], av2[ac2 - 1],
                              !(option_i(av2, ac2, 'd') == -1));
+        game_t *g = new_game(&global_game, av2[ac2 - 2]);
         tbot_run(t, g);
 
         print_game(g);
