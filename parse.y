@@ -106,7 +106,7 @@ cond_if
     }
 }
 | fcall
-| PRINT '(' exp ')' { printf("%ld\n", $3); }
+| PRINT '(' exp ')' { if (cond_active) { printf("%ld\n", $3); } }
 /* or macro call? */
 ;
 

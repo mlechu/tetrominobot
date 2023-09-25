@@ -101,6 +101,7 @@ int main(int argc, char **argv) {
         } else {
             puts("Retry? (y/N)");
             printf("> ");
+            fflush(stdout);
             fgets(retry, 3, stdin);
             /* free(g); // free each time? */
 

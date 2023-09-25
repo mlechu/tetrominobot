@@ -184,10 +184,15 @@ piece_t new_piece(shape_t s) {
 game_t *new_game(game_t *g, char *gname) {
     if (!g) {
         g = calloc(sizeof(game_t), 1);
+    } else {
+        memset(g, 0, sizeof(game_t));
     }
     if (!gname) {
         gname = "";
     }
+    /* fixme add to game struct */
+    memset(bag, 0, sizeof bag);
+    bag_fullness = 7;
     g->p = new_piece(0);
     for (int i = 0; i < PIECE_PREVIEWS; i++) {
         g->preview[i] = rand_shape();
