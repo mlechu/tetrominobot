@@ -106,7 +106,7 @@ cond_if
     }
 }
 | fcall
-| PRINT '(' exp ')' { printf("%ld\n", $3); }
+| PRINT '(' exp ')' { if (cond_active) { printf("%ld\n", $3); } }
 /* or macro call? */
 ;
 
@@ -174,7 +174,8 @@ semicolon.opt:
 
 void yyerror (game_t *g, tbot_t *t, char *s) {
     (void)g;
-    fprintf (stderr, "at pos %ld (\"%c\"): %s\n", t->ppos, t->prog[t->ppos], s);
+    char checked = strlen(t->prog) > t->ppos ? t->prog[t->ppos] : '?';
+    fprintf(stderr, "at pos %ld (\"%c\"): %s\n", t->ppos, checked, s);
     exit(1);
 }
 

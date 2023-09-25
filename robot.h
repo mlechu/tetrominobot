@@ -6,7 +6,8 @@
 
 #define MEM_COUNT 0x100
 #define BOT_NAME_SIZE 0x20
-#define BOT_ITERATIONS 10000
+#define BOT_ITERATIONS 30000
+/*                     30... */
 #define PROG_SIZE 0x8000
 #define PIECE_TIMEOUT 0x100
 
@@ -30,14 +31,7 @@ typedef struct {
     gfunc_t *f;
 } gfte_t;
 
-/* struct purely to make the overwite between two global structs easier without
- * a linker script */
-typedef struct {
-    gfte_t gfunctable[11];
-    tbot_t global_tbot;
-} buggy_t;
-
-extern gfte_t (*const gfunc_table);
+extern const gfte_t gfunc_table[];
 
 int gfunc_i(char *name, uint64_t n);
 int gfunc_call(int i, game_t *g);

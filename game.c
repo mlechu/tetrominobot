@@ -184,10 +184,16 @@ piece_t new_piece(shape_t s) {
 game_t *new_game(game_t *g, char *gname) {
     if (!g) {
         g = calloc(sizeof(game_t), 1);
+    } else {
+         memset(g, 0, sizeof(game_t));
     }
+
     if (!gname) {
         gname = "";
     }
+    /* fixme add to game struct */
+    memset(bag, 0, sizeof bag);
+    bag_fullness = 7;
     g->p = new_piece(0);
     for (int i = 0; i < PIECE_PREVIEWS; i++) {
         g->preview[i] = rand_shape();
@@ -196,14 +202,19 @@ game_t *new_game(game_t *g, char *gname) {
     return g;
 }
 
-/* Return true if p overlaps with any placed piece in g
- * BUG: The piece can be above the board, so the returned value can be an
- * out-of-bounds read */
-/* Other than intentional leaks, do not call unless you're sure the piece is on
- * the board */
+/* Return true if p overlaps with any placed piece in g */
 shape_t check_dead(game_t *g, const piece_t *const p) {
     pos_t cells[4];
     get_cells(*p, cells);
+    int min_x = min4(cells[0].x, cells[1].x, cells[2].x, cells[3].x);
+    int max_x = max4(cells[0].x, cells[1].x, cells[2].x, cells[3].x);
+    int min_y = min4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
+    int max_y = max4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
+
+    if (min_x < 0 || min_y < 0 || max_x >= BOARD_W || max_y >= BOARD_H) {
+        return P_WALL;
+    }
+
     for (int i = 0; i < 4; i++) {
         shape_t on_board = g->board[cells[i].y][cells[i].x];
         if (on_board != P_NONE) {
@@ -344,16 +355,12 @@ shape_t print_game(game_t *g) {
  * hop over the cookie and rbp, so i copy the game pointer after the bad array
  * instead. */
 int clear_lines_write_shape(game_t *g) {
-    volatile struct {
-        score_t scores[5];
-        game_t *g2;
-    } tsp_bug = {{0, 100, 300, 500, 800}, g};
-
+    score_t scores[6] = {0, 100, 300, 500, 800, 1000};
     int should_clear = 0;
     int rowcnt[BOARD_H] = {0}; /* row fullness */
 
     pos_t curr_cells[4];
-    get_cells(tsp_bug.g2->p, curr_cells);
+    get_cells(g->p, curr_cells);
 
     for (int i = 0; i < 4; i++) {
         /* count the current piece */
@@ -361,7 +368,7 @@ int clear_lines_write_shape(game_t *g) {
     }
     for (int y = 0; y < BOARD_H; y++) {
         for (int x = 0; x < BOARD_W; x++) {
-            if (tsp_bug.g2->board[y][x] != P_NONE) {
+            if (g->board[y][x] != P_NONE) {
                 rowcnt[y]++;
             }
         }
@@ -374,8 +381,7 @@ int clear_lines_write_shape(game_t *g) {
     if (!should_clear) {
         /* writing the shape to the board */
         for (int i = 0; i < 4; i++) {
-            tsp_bug.g2->board[curr_cells[i].y][curr_cells[i].x] =
-                tsp_bug.g2->p.s;
+            g->board[curr_cells[i].y][curr_cells[i].x] = g->p.s;
         }
         return 0;
     }
@@ -384,28 +390,22 @@ int clear_lines_write_shape(game_t *g) {
      * triple gives score_i = 5 */
     int score_i = 0;
 
-    if (tsp_bug.g2->p.s == P_T) {
+    if (g->p.s == P_T) {
         /* puts("is T"); */
-        piece_t new_p = tsp_bug.g2->p;
-        new_p.pos.y = tsp_bug.g2->p.pos.y - 1;
+        piece_t new_p = g->p;
+        new_p.pos.y = g->p.pos.y - 1;
 
         pos_t cells[4];
         get_cells(new_p, cells);
         int min_y = min4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
         if (min_y >= 0 && check_dead(g, &new_p)) {
-            /* BUG: If we find a t-spin (last piece was a t piece AND it cannot
-             * be moved up one spot AND we clear at least one line) we try to
-             * boost the score by setting score_i. Since the line clear counting
-             * happens after regardless, we get max points for a t-spin single,
-             * and two possible leaks for 2 and 3 cleared lines respectively.
-             */
-            score_i = 3;
+            score_i = 2;
         }
     }
 
     /* writing the shape to the board */
     for (int i = 0; i < 4; i++) {
-        tsp_bug.g2->board[curr_cells[i].y][curr_cells[i].x] = tsp_bug.g2->p.s;
+        g->board[curr_cells[i].y][curr_cells[i].x] = g->p.s;
     }
 
     int src_y = BOARD_H - 1;
@@ -413,7 +413,7 @@ int clear_lines_write_shape(game_t *g) {
     for (int dst_y = BOARD_H - 1; dst_y >= 0; dst_y--, src_y--) {
         if (src_y < 0) { /* nothing to shift; copy a blank line */
             for (int x = 0; x < BOARD_W; x++) {
-                tsp_bug.g2->board[dst_y][x] = P_NONE;
+                g->board[dst_y][x] = P_NONE;
             }
         } else {
             while (rowcnt[src_y] == BOARD_W && src_y >= 0) { /* clear */
@@ -421,14 +421,14 @@ int clear_lines_write_shape(game_t *g) {
                 score_i++;
             }
             for (int x = 0; x < BOARD_W; x++) {
-                tsp_bug.g2->board[dst_y][x] = tsp_bug.g2->board[src_y][x];
+                g->board[dst_y][x] = g->board[src_y][x];
             }
         }
     }
 
     /* printf("score_i: %d\n", score_i); */
     fflush(stdout);
-    return tsp_bug.scores[score_i];
+    return scores[score_i];
 }
 
 /* Shift the queue forward, filling in the new spot, and throwing away curr.

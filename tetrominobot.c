@@ -9,19 +9,6 @@
 /* hack. should have util.c */
 /* #include "util.h" */
 
-/* considering a global timeout (seconds) for infra reasons */
-
-/* BUG: The checker for option arguments is quite lenient.
-   1. If we're in practice mode, bypass everything and play.
-   2. If the bot name is not specified with -n, ask.
-   3. If the program is not speficied with -b, ask.
-   4. We check for the -d option in everything we've been given, incl. bot name
-   5. Retry: if the -b program is not specified and the user says yes, goto 2.
-
-   so starting your bot name with -d will trigger debug mode.
-
-   this bug is a little silly, but i'm going with it.
- */
 game_t global_game = {0};
 
 int option_i(char **av2, int n, char c) {
@@ -87,9 +74,10 @@ int main(int argc, char **argv) {
             fgets(av2[ac2 - 1], PROG_SIZE, stdin);
         }
 
-        game_t *g = new_game(&global_game, av2[ac2 - 2]);
+        /* srand initialized here */
         tbot_t *t = tbot_new(NULL, av2[ac2 - 2], av2[ac2 - 1],
                              !(option_i(av2, ac2, 'd') == -1));
+        game_t *g = new_game(&global_game, av2[ac2 - 2]);
         tbot_run(t, g);
 
         print_game(g);

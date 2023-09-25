@@ -1,15 +1,13 @@
 DEBUG := 0
 
 CC := gcc
-CCFLAGS := -I .
+CCFLAGS := -I . -fcf-protection=full -fstack-protector-all -O2
 BFLAGS := --no-lines
 
 ifeq ($(DEBUG), 1)
-	CCFLAGS += -g -Wall -Wextra -Wpedantic
+	CCFLAGS += -g -Wall -Wextra -Wpedantic -fsanitize=address -fsanitize=undefined -fsanitize=signed-integer-overflow -fsanitize-undefined-trap-on-error
 # CCFLAGS += -fno-pie -no-pie
 # BFLAGS += -Wcounterexamples
-else
-	CCFLAGS += -O1
 endif
 
 OUTDIR := out
@@ -52,39 +50,32 @@ $(OUTDIR)/tetrominobot: tetrominobot.c $(OUTDIR)/game $(OUTDIR)/robot $(OUTDIR)/
 tx: $(OUTDIR)/tx
 
 tx_clean:
-	rsync -rva --exclude $(OUTDIR) --exclude .git . $(VM_IP):tbot
-	ssh -A $(VM_IP) "cd tbot && make clean"
+	rsync -rva --exclude $(OUTDIR) --exclude .git . $(VM_IP):tbot2
+	ssh -A $(VM_IP) "cd tbot2 && make clean"
 
 $(OUTDIR)/tx: robot.c game.c tetrominobot.c |$(OUTDIR)
-	rsync -rva --exclude $(OUTDIR) --exclude .git . $(VM_IP):tbot
-	ssh -A $(VM_IP) "cd tbot && make handouts"
-	scp -r $(VM_IP):~/tbot/$(OUTDIR)/* ./$(OUTDIR)/
-# scp $(VM_IP):~/tbot/$(OUTDIR)/tetrominobot $(OUTDIR)/tx
+	rsync -rva --exclude $(OUTDIR) --exclude .git . $(VM_IP):tbot2
+	ssh -A $(VM_IP) "cd tbot2 && make handouts"
+	scp -r $(VM_IP):~/tbot2/$(OUTDIR)/* ./$(OUTDIR)/
 
-D_IMG := tbot_img
-D_CON := tbot_container
+D_IMG := tbot2_img
+D_CON := tbot2_container
 D_BUILD := /build
 
 $(HDIR):
 	mkdir -p $(HDIR)
 
-handouts: robot.c game.c tetrominobot.c player-manual.org makefile $(OUTDIR)/docker_tbot_cont |$(HDIR)
+handouts: robot.c game.c tetrominobot.c player-manual.org makefile $(OUTDIR)/docker_tbot2_cont |$(HDIR)
 	docker restart $(D_CON)
 	docker cp . $(D_CON):$(D_BUILD)
 	docker exec $(D_CON) /bin/bash -c 'cd $(D_BUILD) && make'
-	docker exec $(D_CON) /bin/bash -c 'cd $(D_BUILD) && make'
-ifneq ($(DEBUG),1)
 	docker exec $(D_CON) /bin/bash -c 'strip --strip-all $(D_BUILD)/$(OUTDIR)/tetrominobot'
-endif
 	docker cp $(D_CON):$(D_BUILD)/$(OUTDIR)/tetrominobot $(HDIR)
-	docker cp $(D_CON):$(D_BUILD)/$(OUTDIR)/tetrominobot $(HDIR)
-	docker cp $(D_CON):/lib/x86_64-linux-gnu/libc.so.6 $(HDIR)
-	docker cp $(D_CON):/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 $(HDIR)
 	docker stop $(D_CON)
 	cp ./player-manual.org $(HDIR)
 	cp ./simple.tbot $(HDIR)
 
-$(OUTDIR)/docker_tbot_image: dockerfile |$(OUTDIR)
+$(OUTDIR)/docker_tbot2_image: dockerfile |$(OUTDIR)
 	touch $@
 # clean
 	docker stop $(D_CON) || true
@@ -93,7 +84,7 @@ $(OUTDIR)/docker_tbot_image: dockerfile |$(OUTDIR)
 # build
 	docker build . -t $(D_IMG) --platform=linux/amd64
 
-$(OUTDIR)/docker_tbot_cont: $(OUTDIR)/docker_tbot_image |$(OUTDIR)
+$(OUTDIR)/docker_tbot2_cont: $(OUTDIR)/docker_tbot2_image |$(OUTDIR)
 	touch $@
 # clean
 	docker stop $(D_CON) || true

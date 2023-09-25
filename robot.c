@@ -1,66 +1,31 @@
 #include "robot.h"
 #include "game.h"
 #include "out/parse.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 
-buggy_t buggy = {{{"left", move_left},
-                  {"right", move_right},
-                  {"down", move_down},
-                  {"drop", move_drop},
-                  {"rot_l", move_rot_l},
-                  {"rot_r", move_rot_r},
-                  {"rot_180", move_rot_180},
-                  {"hold", move_hold},
-                  {"sdrop", move_sdrop},
-                  {0},
-                  {0}},
-                 {0}};
+const gfte_t gfunc_table[] = {{"left", move_left},       {"right", move_right},
+                              {"down", move_down},       {"drop", move_drop},
+                              {"rot_l", move_rot_l},     {"rot_r", move_rot_r},
+                              {"rot_180", move_rot_180}, {"hold", move_hold},
+                              {"sdrop", move_sdrop},     {0}};
 
-/* ideally not revealing the struct (tbot = &tbot + 0, not &buggy + sizeof
- * functable) */
-gfte_t(*const gfunc_table) = (gfte_t *const)&buggy.gfunctable;
-tbot_t *const global_tbot = &buggy.global_tbot;
-
-/* fte_t gfunc_table[] = {{"left", move_left}, */
-/*                        {"right", move_right}, */
-/*                        {"down", move_down}, */
-/*                        {"drop", move_drop}, */
-/*                        {"rot_l", move_rot_l}, */
-/*                        {"rot_r", move_rot_r}, */
-/*                        {"rot_180", move_rot_180}, */
-/*                        {"hold", move_hold}, */
-/*                        {"sdrop", move_sdrop}, */
-/*                        {0}, */
-/*                        {0}}; */
-/* tbot_t global_tbot = {0}; */
+tbot_t global_tbot = {0};
 
 tbot_t *tbot_new(tbot_t *t, char *name, char *prog, int debug) {
     if (!t) {
-        t = global_tbot;
+        t = &global_tbot;
     }
     memset(t, 0, sizeof(tbot_t));
     *t = (tbot_t){.name = name, .prog = prog, .debug = debug};
-    if (t->debug) {
-        gfunct_extend((gfte_t){.name = "commit", .f = &_move_commit});
-        gfunct_extend(
-            (gfte_t){.name = "dump", .f = (shape_t(*)(game_t *)) & print_game});
-    }
 
-    /* piece generator starting config is easily choosable by putting an EOF in
-     * the program and whatever characters after.
-     *
-     * player probably doesn't even care to predict; having the same set of
-     * pieces every time should be sufficient.
-     *
-     * patching the binary to srand(particular number) in practice mode is
-     * probably what i would do to hit the ceiling bug
-     */
     uint16_t not_random = 0;
     int plen = strlen(t->prog);
-    for (int i = 0; i < plen; i++) {
+    /* isgraph currently corresponds to all characters yylex accepts */
+    for (int i = 0; i < plen && (isgraph(t->prog[i])); i++) {
         not_random += t->prog[i];
     }
     /* printf("%d", not_random); */
@@ -97,24 +62,9 @@ int gfunc_i(char *name, uint64_t n) {
     return -1;
 }
 
-/* BUG: using null as the end */
 int gfunc_call(int i, game_t *g) {
-    /* printf("calling %s\n", gfunc_table[i].name); */
     int ok = gfunc_table[i].f(g);
-    /* printf("ok: %d", ok); */
     return ok;
-}
-
-/* BUG: no */
-int gfunct_extend(gfte_t fte) {
-    int i = 0;
-    for (; gfunc_table[i].name != NULL; i++) {
-        if (!strcmp(gfunc_table[i].name, fte.name)) {
-            return -1;
-        }
-    }
-    gfunc_table[i] = fte;
-    return i;
 }
 
 mem_t tbot_mem(tbot_t *t, int i) {
