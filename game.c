@@ -543,7 +543,9 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
     /* It would be quite cool to get the piece to climb above the address and
      * read it by pushing downwards */
 
-    int lol_out = P_WALL;
+    /* need unsigned max for the lower half of the address leak to work 100% of
+     * the time rather than 50% */
+    uint32_t lol_out = P_WALL;
 
     for (int i = 0; i < 5; i++) {
         /* printf("ROT: trying pos %d: (%d, %d)\n", i, (*kicklist)[i].x, */
@@ -560,13 +562,11 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
         int max_y = max4(cells[0].y, cells[1].y, cells[2].y, cells[3].y);
 
         if (min_x < 0 || max_x >= BOARD_W || max_y >= BOARD_H) {
-            /* puts("pwall"); */
-            lol_out = max2(lol_out, P_WALL);
+            lol_out = lol_out > (uint32_t)P_WALL ? lol_out : P_WALL;
         } else if (check_dead(g, &new_p)) {
-            /* puts("cd"); */
-            lol_out = max2(lol_out, check_dead(g, &new_p));
+            uint32_t cd = (uint32_t)check_dead(g, &new_p);
+            lol_out = lol_out > cd ? lol_out : cd;
         } else {
-            /* printf("ROT: Success\n"); */
             g->p = new_p;
             return 0;
         }

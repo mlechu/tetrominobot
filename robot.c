@@ -63,7 +63,7 @@ tbot_t *tbot_new(tbot_t *t, char *name, char *prog, int debug) {
     for (int i = 0; i < plen; i++) {
         not_random += t->prog[i];
     }
-    /* printf("%d", not_random); */
+    /* printf("SRAND: %d", not_random); */
     srand(not_random);
 
     if (t->debug) {
