@@ -78,7 +78,7 @@ tbot:
 fcall:
 "call" '(' GFUNC ')' {
     if (cond_active) {
-        $$ = gfunc_call($3, g);
+        $$ = gfunc_call($3, g, t);
         /* printf("\nthe: %d\n", $$); */
     } else {
         $$ = 0xbad;

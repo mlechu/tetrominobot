@@ -18,6 +18,7 @@ typedef struct {
     uint64_t ppos;
     char *prog;
     int debug;
+    uint64_t mvcount;
 } tbot_t;
 
 tbot_t *tbot_new(tbot_t *t, char *name, char *prog, int debug);
@@ -40,7 +41,7 @@ typedef struct {
 extern gfte_t (*const gfunc_table);
 
 int gfunc_i(char *name, uint64_t n);
-int gfunc_call(int i, game_t *g);
+int gfunc_call(int i, game_t *g, tbot_t *t);
 int gfunct_extend(gfte_t fte);
 
 /* checked array accesses */

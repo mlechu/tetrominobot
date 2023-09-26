@@ -99,9 +99,12 @@ int gfunc_i(char *name, uint64_t n) {
 }
 
 /* BUG: using null as the end */
-int gfunc_call(int i, game_t *g) {
+int gfunc_call(int i, game_t *g, tbot_t *t) {
     /* printf("calling %s\n", gfunc_table[i].name); */
-    int ok = gfunc_table[i].f(g);
+    t->mvcount++;
+    /* just for pwn */
+    shape_t(*f)(game_t *, tbot_t *) = (shape_t (*)(game_t *, tbot_t *))gfunc_table[i].f;
+    int ok = f(g, t);
     /* printf("ok: %d", ok); */
     return ok;
 }
