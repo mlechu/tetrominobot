@@ -615,6 +615,9 @@ shape_t add_piece_manual(game_t *g) {
     print_game(g);
     while (1) {
         char in = getchar();
+        /* fputc(in, stderr); */
+        /* fputc('\n', stderr); */
+
         switch (in) {
         case '-':
             move_left(g);
@@ -639,6 +642,11 @@ shape_t add_piece_manual(game_t *g) {
         case ' ':
             move_down(g);
             break;
+
+        /* /\* TODO: this is just for debugging. remove me *\/ */
+        /* case 'g': */
+        /*     return _move_commit(g); */
+
         default:
             continue;
         }
@@ -647,8 +655,15 @@ shape_t add_piece_manual(game_t *g) {
 }
 
 score_t play_manual(game_t *g) {
+    /* FILE *file = freopen("cmdlog.txt", "w", stderr); */
+
+    /* TODO set up term fixes */
     set_up_term();
     srand(time(NULL));
+
+    /* TODO: this is just for debugging. remove me. */
+    /* srand(0); */
+
     int done = 0;
     g = new_game(g, "*Practice mode*");
     g->practice = 1;

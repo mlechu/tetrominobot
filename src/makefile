@@ -1,6 +1,6 @@
 DEBUG := 0
 
-CC := gcc
+CC := gcc -fpie -pie
 CCFLAGS := -I .
 BFLAGS := --no-lines
 
@@ -14,6 +14,7 @@ endif
 
 OUTDIR := out
 HDIR := $(OUTDIR)/handout
+DISTDIR := $(CURDIR)/../dist
 
 VM_IP := vm
 
@@ -59,6 +60,7 @@ $(OUTDIR)/tx: robot.c game.c tetrominobot.c |$(OUTDIR)
 	rsync -rva --exclude $(OUTDIR) --exclude .git . $(VM_IP):tbot
 	ssh -A $(VM_IP) "cd tbot && make handouts"
 	scp -r $(VM_IP):~/tbot/$(OUTDIR)/* ./$(OUTDIR)/
+	cp -r $(HDIR)/* $(DISTDIR)
 # scp $(VM_IP):~/tbot/$(OUTDIR)/tetrominobot $(OUTDIR)/tx
 
 D_IMG := tbot_img

@@ -1,7 +1,7 @@
 * tetrominobot
 You can call yourself an AI engineer after this one
 
-** details
+** Details
 The program allows the player to create little tetris bots. minus pwn, the intention would be to get
 the highest-scoring bot. This would make for a fun misc or koth chall if there's time.
 
@@ -9,6 +9,7 @@ The player gets:
 1. a binary
 2. a player manual
 3. an example program that clears a few lines and dies
+4. libc
 
 ** Language
 The language is meant to be simple; basically a block of C-like code that is run in a loop. In this
@@ -19,11 +20,10 @@ code, you have access to:
 - a small chunk of memory for counters or whatever the player wants
 - maybe macros if I have the time
 
-There won't be loops beyond the outer loop, but workarounds using counters are possible.
+There won't be loops beyond the outer loop, but workarounds using counters are possible. The full
+grammar is in the player manual.
 
-todo add grammar
-
-** exploit
+** Exploit
 
 It might suffice to do either bug 1 or bug 2 interchangably (1 probably being more useful; 2 is
 mostly there because having a t-spin leak is funny). 3 should be mandatory.
@@ -112,24 +112,24 @@ the player memory being so close together. i just need to make sure this doesn't
 ways of finding good addresses (please use the ceiling bug and/or the t-spin bug)
 
 
-current working bug demo minus pie which calls rot_l by its address:
+e.g. this will segfault in debug mode:
 
-~{ mem[0] = 4219153; mem[1] = 4207180; call(help) }~
+~{ mem[0] = 123; mem[1] = 0; call(nonexistant_function) }~
 
 
 ** flag
 - maple{tell the marketing department that we use 99% fewer CPU cycles than competing apps}
 
-
-* todo
+** todo
 in descending order of importance
 
 - piece timeout?
 - ask people to debug cmdline args
-- print should only do so when debugging
 - test game functions
 
+** building
 
-* building
+~make handouts~ should build a correct docker image and run ~make~ there, copying the outputs to
+out/handout.
 
-~make handouts~ should build a correct docker image and run ~make~ there.
+~make tx~ is for my own setup.
