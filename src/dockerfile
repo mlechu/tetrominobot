@@ -2,8 +2,6 @@
 
 FROM ubuntu:22.04
 RUN apt-get update -y && apt-get -y install gcc make bison
-# CMD tail -f /dev/null
-
 CMD /bin/bash
 
 # docker build . -t tbot_img

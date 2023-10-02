@@ -18,7 +18,6 @@ code, you have access to:
 - a set of predefined game functions
 - if statements
 - a small chunk of memory for counters or whatever the player wants
-- maybe macros if I have the time
 
 There won't be loops beyond the outer loop, but workarounds using counters are possible. The full
 grammar is in the player manual.
@@ -45,8 +44,7 @@ however, it would make for an interesting challenge to use real randomness.
 *** bug 1: libc leak through the ceiling
 - Like in the real game, pieces existing above the visible board does not kill you
   - you die when a new piece can't spawn (usually in the top-middle of the board)
-- An address or some other interesting data is stored above the board in memory
-  - libc? address of game memory for a ropchain?
+- Some libc pointers are stored above the board in memory (stdin/out/err)
 - Piece movement functions return 0 for success or a number describing what the piece ran into
 - Like in the real game, there is no "move up" function, but if you are rotating a piece close to
   some obstacles, there is a bunch of "kick" positions that are tried, and many of these positions
@@ -114,22 +112,4 @@ ways of finding good addresses (please use the ceiling bug and/or the t-spin bug
 
 e.g. this will segfault in debug mode:
 
-~{ mem[0] = 123; mem[1] = 0; call(nonexistant_function) }~
-
-
-** flag
-- maple{tell the marketing department that we use 99% fewer CPU cycles than competing apps}
-
-** todo
-in descending order of importance
-
-- piece timeout?
-- ask people to debug cmdline args
-- test game functions
-
-** building
-
-~make handouts~ should build a correct docker image and run ~make~ there, copying the outputs to
-out/handout.
-
-~make tx~ is for my own setup.
+~{ mem[0] = 123; mem[1] = 0; call(nonexistent_function) }~

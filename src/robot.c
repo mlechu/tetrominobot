@@ -24,19 +24,6 @@ buggy_t buggy = {{{"left", move_left},
 gfte_t(*const gfunc_table) = (gfte_t *const)&buggy.gfunctable;
 tbot_t *const global_tbot = &buggy.global_tbot;
 
-/* fte_t gfunc_table[] = {{"left", move_left}, */
-/*                        {"right", move_right}, */
-/*                        {"down", move_down}, */
-/*                        {"drop", move_drop}, */
-/*                        {"rot_l", move_rot_l}, */
-/*                        {"rot_r", move_rot_r}, */
-/*                        {"rot_180", move_rot_180}, */
-/*                        {"hold", move_hold}, */
-/*                        {"sdrop", move_sdrop}, */
-/*                        {0}, */
-/*                        {0}}; */
-/* tbot_t global_tbot = {0}; */
-
 tbot_t *tbot_new(tbot_t *t, char *name, char *prog, int debug) {
     if (!t) {
         t = global_tbot;
@@ -81,7 +68,6 @@ int tbot_run(tbot_t *t, game_t *g) {
         if (check_dead(g, &g->p)) {
             break;
         }
-        /* this gets to be a little much when coming from the remote */
         /* if (t->debug) { */
         /*     print_game(g); */
         /* } */
@@ -100,12 +86,10 @@ int gfunc_i(char *name, uint64_t n) {
 
 /* BUG: using null as the end */
 int gfunc_call(int i, game_t *g, tbot_t *t) {
-    /* printf("calling %s\n", gfunc_table[i].name); */
     t->mvcount++;
     /* just for pwn */
-    shape_t(*f)(game_t *, tbot_t *) = (shape_t (*)(game_t *, tbot_t *))gfunc_table[i].f;
-    int ok = f(g, t);
-    /* printf("ok: %d", ok); */
+    shape_t(*f)(game_t *, int what, tbot_t *) = (shape_t (*)(game_t *, int what, tbot_t *))gfunc_table[i].f;
+    int ok = f(g, 0, t);
     return ok;
 }
 

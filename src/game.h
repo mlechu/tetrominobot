@@ -39,7 +39,6 @@ typedef struct {
 typedef shape_t board_t[BOARD_H][BOARD_W];
 
 typedef struct {
-    /* todo a zero here */
     board_t board;
     score_t score;
     piece_t p;
@@ -58,7 +57,6 @@ typedef struct {
 
 shape_t rand_shape(void);
 void get_cells(piece_t p, pos_t out[4]);
-/* piece_t new_piece(int s); */
 game_t *new_game(game_t *g, char *name);
 shape_t check_dead(game_t *g, const piece_t *const p);
 int ghost_pos(game_t *g);
@@ -75,7 +73,6 @@ shape_t move_rot_r(game_t *g);
 shape_t move_rot_180(game_t *g);
 shape_t move_rot_l(game_t *g);
 shape_t move_hold(game_t *g);
-/* shape_t move_die(game_t *g); */
 shape_t add_piece_manual(game_t *g);
 score_t play_manual(game_t *g);
 

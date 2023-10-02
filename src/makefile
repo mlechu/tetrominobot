@@ -1,12 +1,10 @@
-DEBUG := 0
-
-CC := gcc -fpie -pie
-CCFLAGS := -I .
+CC := gcc
+CCFLAGS := -I . -fpie -pie -fstack-protector-all
+CCFLAGS += -D_FORTIFY_SOURCE=2 -Wl,-z,relro,-z,now
 BFLAGS := --no-lines
 
 ifeq ($(DEBUG), 1)
 	CCFLAGS += -g -Wall -Wextra -Wpedantic
-# CCFLAGS += -fno-pie -no-pie
 # BFLAGS += -Wcounterexamples
 else
 	CCFLAGS += -O1
@@ -14,9 +12,6 @@ endif
 
 OUTDIR := out
 HDIR := $(OUTDIR)/handout
-DISTDIR := $(CURDIR)/../dist
-
-VM_IP := vm
 
 all: $(OUTDIR)/tetrominobot |$(OUTDIR)
 
@@ -46,22 +41,6 @@ $(OUTDIR)/game: game.c |$(OUTDIR)
 $(OUTDIR)/tetrominobot: tetrominobot.c $(OUTDIR)/game $(OUTDIR)/robot $(OUTDIR)/parse |$(OUTDIR)
 	$(CC) $(CCFLAGS) $^ -o $@
 
-# makefile crimes for my own debugging
-# make tx to make handouts on the x86 vm, which spins up docker and runs make
-# theoretically might be ok to to just make handouts on docker locally
-
-tx: $(OUTDIR)/tx
-
-tx_clean:
-	rsync -rva --exclude $(OUTDIR) --exclude .git . $(VM_IP):tbot
-	ssh -A $(VM_IP) "cd tbot && make clean"
-
-$(OUTDIR)/tx: robot.c game.c tetrominobot.c |$(OUTDIR)
-	rsync -rva --exclude $(OUTDIR) --exclude .git . $(VM_IP):tbot
-	ssh -A $(VM_IP) "cd tbot && make handouts"
-	scp -r $(VM_IP):~/tbot/$(OUTDIR)/* ./$(OUTDIR)/
-	cp -r $(HDIR)/* $(DISTDIR)
-# scp $(VM_IP):~/tbot/$(OUTDIR)/tetrominobot $(OUTDIR)/tx
 
 D_IMG := tbot_img
 D_CON := tbot_container

@@ -98,42 +98,6 @@ const pos_t KICKS_A[4][4][5] = {{NO_KICKS,
                                  {{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
                                  NO_KICKS}};
 
-/* note these comments use y-axis increasing upwards */
-/* /\* I-piece *\/ */
-/* 0>>1 | {{ 0, 0}, {-2, 0}, { 1, 0}, {-2,-1}, { 1, 2}}  */
-/* 0>>3 | {{ 0, 0}, {-1, 0}, { 2, 0}, {-1, 2}, { 2,-1}}  */
-/* 1>>0 | {{ 0, 0}, { 2, 0}, {-1, 0}, { 2, 1}, {-1,-2}}  */
-/* 1>>2 | {{ 0, 0}, {-1, 0}, { 2, 0}, {-1, 2}, { 2,-1}}  */
-/* 2>>1 | {{ 0, 0}, { 1, 0}, {-2, 0}, { 1,-2}, {-2, 1}}  */
-/* 2>>3 | {{ 0, 0}, { 2, 0}, {-1, 0}, { 2, 1}, {-1,-2}}  */
-/* 3>>0 | {{ 0, 0}, { 1, 0}, {-2, 0}, { 1,-2}, {-2, 1}}  */
-/* 3>>2 | {{ 0, 0}, {-2, 0}, { 1, 0}, {-2,-1}, { 1, 2}}  */
-
-/* /\* all others *\/ */
-/* 0>>1 | {{ 0, 0}, {-1, 0}, {-1, 1}, { 0,-2}, {-1,-2}}  */
-/* 0>>3 | {{ 0, 0}, { 1, 0}, { 1, 1}, { 0,-2}, { 1,-2}}  */
-/* 1>>0 | {{ 0, 0}, { 1, 0}, { 1,-1}, { 0, 2}, { 1, 2}}  */
-/* 1>>2 | {{ 0, 0}, { 1, 0}, { 1,-1}, { 0, 2}, { 1, 2}}  */
-/* 2>>1 | {{ 0, 0}, {-1, 0}, {-1, 1}, { 0,-2}, {-1,-2}}  */
-/* 2>>3 | {{ 0, 0}, { 1, 0}, { 1, 1}, { 0,-2}, { 1,-2}}  */
-/* 3>>0 | {{ 0, 0}, {-1, 0}, {-1,-1}, { 0, 2}, {-1, 2}}  */
-/* 3>>2 | {{ 0, 0}, {-1, 0}, {-1,-1}, { 0, 2}, {-1, 2}}  */
-
-/* 180 degree kicks. using no kicks (only try (0,0)) for now */
-/* { */
-/*     {{ 0, 0},{ 1, 0},{ 2, 0},{ 1, 1},{ 2, 1}},  // 0>>2 */
-/*     {{ 0, 0},{ 0, 1},{ 0, 2},{-1, 1},{-1, 2}},  // 1>>3 */
-/*     {{ 0, 0},{-1, 0},{-2, 0},{-1,-1},{-2,-1}},  // 2>>0 */
-/*     {{ 0, 0},{ 0, 1},{ 0, 2},{ 1, 1},{ 1, 2}},  // 3>>1 */
-/* }; */
-/*  */
-/* { */
-/*     {{ 0, 0},{-1, 0},{-2, 0},{ 1, 0},{ 2, 0}},// 0>>2 */
-/*     {{ 0, 0},{ 0, 1},{ 0, 2},{ 0,-1},{ 0,-2}},// 1>>3 */
-/*     {{ 0, 0},{ 1, 0},{ 2, 0},{-1, 0},{-2, 0}},// 2>>0 */
-/*     {{ 0, 0},{ 0, 1},{ 0, 2},{ 0,-1},{ 0,-2}},// 3>>1 */
-/* }; */
-
 int bag_fullness = 7;
 char bag[7];
 
@@ -204,8 +168,6 @@ game_t *new_game(game_t *g, char *gname) {
 /* Return true if p overlaps with any placed piece in g
  * BUG: The piece can be above the board, so the returned value can be an
  * out-of-bounds read */
-/* Other than intentional leaks, do not call unless you're sure the piece is on
- * the board */
 shape_t check_dead(game_t *g, const piece_t *const p) {
     pos_t cells[4];
     get_cells(*p, cells);
@@ -250,7 +212,6 @@ shape_t print_game(game_t *g) {
         }
     }
 
-    /* ghost piece */
     piece_t ghost = g->p;
     ghost.pos.y = ghost_pos(g);
     pos_t ghost_cells[4];
@@ -301,12 +262,9 @@ shape_t print_game(game_t *g) {
         }
     }
 
-    /* print */
     printf("\n");
 
     printf("+------------+--------------------+------------+\n");
-    /* printf("| Hold:      | *Practice mode*    | Next:      |\n"); */
-
     printf("| Hold:      | ");
     int namelen = strlen(g->name);
     for (int i = 0; i < 18; i++) {
@@ -385,8 +343,6 @@ score_t clear_lines_write_shape(game_t *g) {
         return 0;
     }
 
-    /* maybe if piece == T and move_up == dead then score_i = 4 and t-spin
-     * triple gives score_i = 5 */
     int score_i = 0;
 
     if (tsp_bug.g2->p.s == P_T) {
@@ -414,7 +370,6 @@ score_t clear_lines_write_shape(game_t *g) {
     }
 
     int src_y = BOARD_H - 1;
-    /* I suppose an overflow when shifting things down could also be good */
     for (int dst_y = BOARD_H - 1; dst_y >= 0; dst_y--, src_y--) {
         if (src_y < 0) { /* nothing to shift; copy a blank line */
             for (int x = 0; x < BOARD_W; x++) {
@@ -431,7 +386,6 @@ score_t clear_lines_write_shape(game_t *g) {
         }
     }
 
-    /* printf("score_i: %d\n", score_i); */
     fflush(stdout);
     return tsp_bug.scores[score_i];
 }
@@ -462,7 +416,6 @@ shape_t _move_lr(game_t *g, int diff) {
         return P_WALL;
     }
 
-    /* check collisions with placed pieces */
     shape_t dead = check_dead(g, &new_p);
     if (dead) {
         return dead;
@@ -472,7 +425,6 @@ shape_t _move_lr(game_t *g, int diff) {
     return 0;
 }
 
-///////// game actions
 shape_t move_left(game_t *g) { return _move_lr(g, -1); }
 shape_t move_right(game_t *g) { return _move_lr(g, 1); }
 shape_t move_down(game_t *g) {
@@ -534,22 +486,9 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
         kicklist = &KICKS_A[old_a & 3][new_a & 3];
     }
 
-    /* TODO: Currently returning the max fail value so the address is easy to
-     * get.  It would be better to 1. return P_WALL here, 2. have a guaranteed
-     * hole in the ceiling, and 3. have the player use a t-piece or something to
-     * climb up there
-     */
-
-    /* It would be quite cool to get the piece to climb above the address and
-     * read it by pushing downwards */
-
-    /* need unsigned max for the lower half of the address leak to work 100% of
-     * the time rather than 50% */
     uint32_t lol_out = P_WALL;
 
     for (int i = 0; i < 5; i++) {
-        /* printf("ROT: trying pos %d: (%d, %d)\n", i, (*kicklist)[i].x, */
-        /*        (*kicklist)[i].y); */
         piece_t new_p = g->p;
         new_p.angle = new_a;
         new_p.pos.x += (*kicklist)[i].x;
@@ -571,7 +510,6 @@ shape_t _move_rot(game_t *g, int old_a, int new_a) {
             return 0;
         }
     }
-    /* printf("rot: 0x%x\n", lol_out); */
     return lol_out;
 }
 
@@ -615,9 +553,6 @@ shape_t add_piece_manual(game_t *g) {
     print_game(g);
     while (1) {
         char in = getchar();
-        /* fputc(in, stderr); */
-        /* fputc('\n', stderr); */
-
         switch (in) {
         case '-':
             move_left(g);
@@ -642,11 +577,6 @@ shape_t add_piece_manual(game_t *g) {
         case ' ':
             move_down(g);
             break;
-
-        /* /\* TODO: this is just for debugging. remove me *\/ */
-        /* case 'g': */
-        /*     return _move_commit(g); */
-
         default:
             continue;
         }
@@ -655,15 +585,9 @@ shape_t add_piece_manual(game_t *g) {
 }
 
 score_t play_manual(game_t *g) {
-    /* FILE *file = freopen("cmdlog.txt", "w", stderr); */
-
     /* TODO set up term fixes */
     set_up_term();
     srand(time(NULL));
-
-    /* TODO: this is just for debugging. remove me. */
-    /* srand(0); */
-
     int done = 0;
     g = new_game(g, "*Practice mode*");
     g->practice = 1;
