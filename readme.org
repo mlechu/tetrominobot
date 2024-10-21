@@ -1,0 +1,148 @@
+* tetrominobot
+
+A CTF challenge for MapleCTF 2023
+
+[[./img.png]]
+
+The program is a jstris-like terminal game playable either by hand or by writing
+a script in a simple language.  Minus the goal of exploiting the program, the
+player's intention would be to get the highest-scoring bot.  The version without
+exploitable bugs (see the
+[[https://github.com/mlechu/tetrominobot/commit/09eb0278903f4e012183160c8b5b294b5fb3bd14][debugged
+version]]) could make for a fun misc or king-of-the-hill challenge.
+
+The player receives:
+1. the game binary
+2. a player manual
+3. an example bot that clears a few lines and dies
+4. the libc binary from the server
+
+** Language
+The language is meant to be simple; basically a block of C-like code that is run
+in a loop. In this code, you have access to:
+- a set of predefined variables
+- a set of predefined game functions
+- if statements
+- a small chunk of memory for counters or whatever the player wants
+
+There won't be loops beyond the outer loop, but workarounds using counters are
+possible. The full grammar is in the player manual.
+
+** Exploit
+Two bugs, one exploited by putting pieces above the board and checking for a
+return value, and the other by performing a t-spin and checking the score, leak
+useful addresses.  Another bug allows the lookup table of game functions to
+extend into player-controlled memory, allowing the player to call any address
+(and ROP around libc).
+
+Note: it might suffice to exploit either bug 1 or bug 2 interchangeably (1
+probably being more useful; 2 is mostly there because having a t-spin address
+leak is funny).
+
+*** bug 1: libc leak through the ceiling
+- Some pointers to libc are stored above the board in memory
+- Piece movement functions return 0 for success or a number describing what the
+  piece ran into
+- Like in the real game, pieces existing above the visible board does not kill
+  you; you die when a new piece can't spawn
+- Like in the real game, there is no "move up" function, but if you are rotating
+  a piece close to some obstacles, there is a bunch of close-enough "kick"
+  positions that are tried, and many of these positions bump the rotated piece
+  up into the libc addresses
+
+An illustration of the memory above the game board is below. One box is four
+bytes.
+
+#+begin_example
+            unhelpful data    | libc *  |         | libc *  |
+          (currently all zero)| stdout  |         | stdin   |
+          +----+----+----+----+----+----+----+----+----+----+
+  ROW -2  |    |    |    |    |XXXX|XXXX|    |    |XXXX|XXXX|
+          |    |    |    |    |XXXX|XXXX|    |    |XXXX|XXXX|
+          +----+----+----+----+----+----+----+----+----+----+
+
+                    | libc *  |     completed.0
+                    | stderr  |     (24 bytes)
+          +----+----+----+----+----+----+----+----+----+----+
+  ROW -1  |    |    |XXXX|XXXX|    |    |    |    |    |    |
+          |    |    |XXXX|XXXX|    |    |    |    |    |    |
+          +----+----+----+----+----+----+----+----+----+----+
+
+  ROW 0   +----+----+----+----+----+----+----+----+----+----+
+          |                                                 |
+          |   real board here...                            |
+#+end_example
+
+
+*** bug 2: base address leak with a t-spin
+- The score delta when clearing n lines is ~scores[n]~, where ~scores~ is 5
+  constant 8-byte numbers stored on the stack
+- T-spins give a player bonus points
+  - T-spin = the piece dropped was a T and the T is "under" some existing pieces
+- It is possible to clear 1, 2, or 3 lines with a t-spin
+- Then the score delta is calculated in an unsafe way
+  #+begin_src c
+    int i = (lines_cleared > 0) ? 0 : tspin ? 3 : 0;
+    i += lines_cleared;
+    return scores[i];
+  #+end_src
+- Player can access the score in their bot.
+
+I decided to go with 2 lines being good enough for a leak.  i don't even know
+how to do a t-spin triple lol
+
+*** bug 3: arbitrary call using bad debug mode and buggy cmdline arg parser
+- The functions callable by the player's bot are stored in a list of ~char*,
+  function*~ pairs, and a lookup stops at the first null string
+- Running the program in "debug mode" (-d) adds two more game functions to the
+  table, one to print the board state, and one to freeze a piece midair.  There
+  is only space to safely add one function, however. (See diagram.)
+  - Debug mode can be enabled on an already-running program by putting the "-d"
+    flag in the bot name
+- The player-writable memory is allocated right after the game function table.
+- This is all made easier by the fact the player can re-run the program with a
+  different bot (and the same ASLR) until they quit or things segfault.
+
+So this bot will segfault in debug mode:
+
+~{ mem[0] = 123; mem[1] = 0; call(nonexistent_function) }~
+
+And this will call 0xdeadbeef:
+
+~{ mem[0] = <addr of "puts" attained from leaks>; mem[1] = 0xdeadbeef; call(puts) }~
+
+Relevant memory:
+#+begin_example
+                    char*           function*
+                  +---------------+---------------+
+game functions -> | "left"        |[moves pc left]|
+                  +---------------+---------------+
+                  | "right"       |["" right]     |
+                  +---------------+---------------+
+                  Z              ...              Z
+                  +===============+===============+
+    debug only -> | "commit"      |[midair "drop"]|
+ (otherwise 0)    +---------------+---------------+
+                  | "dump"        |[print board]  |
+                  +===============+===============+
+       player- -> | mem[0]        | mem[1]        |
+    controlled    +---------------+---------------+
+        memory    | mem[2]        | mem[3]        |
+                  +---------------+---------------+
+                  Z ...(probably a rop chain)...  Z
+#+end_example
+
+
+*** optional bug: srand (piece generator) control
+Intentionally lazy rng so the player can get the same pieces every time.
+
+- The sequence of pieces is deterministic given the bot program (randomness is
+  initialized with the sum of all bytes)
+- The parser stops at an EOF character and so the user can put whatever they
+  like after one, controlling the randomness.
+- Like in the real game, pieces are repeatedly drawn from a bag of 7, so this
+  just controls the permutations (the player can't just ask for I
+  pieces).
+
+Using nondeterministic pieces would be interesting, though probably too hard I
+think.
